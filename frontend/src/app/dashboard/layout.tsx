@@ -37,14 +37,14 @@ export default function DashboardLayout({
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ background: '#08080a' }}>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#f4f5f7' }}>
         <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(255,255,255,0.1)', borderTopColor: '#3b82f6' }} />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#08080a' }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: '#f4f5f7' }}>
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />

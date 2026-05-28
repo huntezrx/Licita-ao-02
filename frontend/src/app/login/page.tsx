@@ -40,17 +40,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#08080a' }}>
-      {/* Subtle background glow */}
-      <div className="fixed inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(59,130,246,0.05) 0%, transparent 100%)',
-      }} />
-
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#f4f5f7' }}>
       <div className="w-full max-w-[360px] relative">
         {/* Brand */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-4"
-            style={{ background: '#111115', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <rect x="2" y="2" width="6" height="6" rx="1.5" fill="#3b82f6" opacity="0.9"/>
               <rect x="10" y="2" width="6" height="6" rx="1.5" fill="#3b82f6" opacity="0.5"/>
@@ -58,36 +53,36 @@ export default function LoginPage() {
               <rect x="10" y="10" width="6" height="6" rx="1.5" fill="#3b82f6" opacity="0.25"/>
             </svg>
           </div>
-          <h1 className="text-lg font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>LicitaNex</h1>
-          <p className="text-xs mt-1" style={{ color: '#44444f' }}>Gestão de Licitações Públicas</p>
+          <h1 className="text-lg font-semibold" style={{ color: '#111827', letterSpacing: '-0.02em' }}>LicitaNex</h1>
+          <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>Gestão de Licitações Públicas</p>
         </div>
 
         {/* Form card */}
-        <div className="rounded-2xl p-6" style={{ background: '#111115', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
           <div className="mb-6">
-            <h2 className="text-base font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.01em' }}>
+            <h2 className="text-base font-semibold" style={{ color: '#111827', letterSpacing: '-0.01em' }}>
               Acesse sua conta
             </h2>
-            <p className="text-xs mt-1" style={{ color: '#7f7f8c' }}>Entre com suas credenciais</p>
+            <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>Entre com suas credenciais</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Email</label>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: '#6b7280' }}>Email</label>
               <input
                 {...register('email')}
                 type="email"
                 placeholder="seu@email.com.br"
                 className="input-premium"
               />
-              {errors.email && <p className="text-[11px] mt-1" style={{ color: '#f87171' }}>{errors.email.message}</p>}
+              {errors.email && <p className="text-[11px] mt-1" style={{ color: '#dc2626' }}>{errors.email.message}</p>}
             </div>
 
             {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium" style={{ color: '#7f7f8c' }}>Senha</label>
+                <label className="text-xs font-medium" style={{ color: '#6b7280' }}>Senha</label>
                 <Link href="/forgot-password" className="text-[11px] transition-colors" style={{ color: '#3b82f6' }}>
                   Esqueceu?
                 </Link>
@@ -103,12 +98,12 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                  style={{ color: '#44444f' }}
+                  style={{ color: '#9ca3af' }}
                 >
                   {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
-              {errors.password && <p className="text-[11px] mt-1" style={{ color: '#f87171' }}>{errors.password.message}</p>}
+              {errors.password && <p className="text-[11px] mt-1" style={{ color: '#dc2626' }}>{errors.password.message}</p>}
             </div>
 
             {/* 2FA */}
@@ -141,10 +136,10 @@ export default function LoginPage() {
         </div>
 
         {/* Demo hint */}
-        <div className="mt-4 px-4 py-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.12)' }}>
-          <p className="text-[11px] font-medium mb-1" style={{ color: '#60a5fa' }}>Modo demonstração</p>
-          <p className="text-[11px]" style={{ color: '#7f7f8c' }}>
-            <span style={{ color: '#b0b0be' }}>admin@licitanex.com.br</span> · <span style={{ color: '#b0b0be' }}>Demo@2024</span>
+        <div className="mt-4 px-4 py-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
+          <p className="text-[11px] font-medium mb-1" style={{ color: '#2563eb' }}>Modo demonstração</p>
+          <p className="text-[11px]" style={{ color: '#6b7280' }}>
+            <span style={{ color: '#374151' }}>admin@licitanex.com.br</span> · <span style={{ color: '#374151' }}>Demo@2024</span>
           </p>
         </div>
       </div>

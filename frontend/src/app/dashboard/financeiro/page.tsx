@@ -10,19 +10,21 @@ export default function FinanceiroPage() {
 
   const pagos = empenhos.filter(e => e.status === 'PAGO');
   const pendentes = empenhos.filter(e => e.status === 'PENDENTE');
-  const alertas = empenhos.filter(e => e.valorCusto > e.valorVenda);
+  const alertas = empenhos.filter(e => e.itens.some(i => i.valorCusto > i.valorVenda));
 
-  const receita = empenhos.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
-  const custo = empenhos.reduce((s, e) => s + e.qtd * e.valorCusto, 0);
+  const eTv = (e: typeof empenhos[0]) => e.itens.reduce((s, i) => s + i.qtd * i.valorVenda, 0);
+  const eTc = (e: typeof empenhos[0]) => e.itens.reduce((s, i) => s + i.qtd * i.valorCusto, 0);
+  const receita = empenhos.reduce((s, e) => s + eTv(e), 0);
+  const custo = empenhos.reduce((s, e) => s + eTc(e), 0);
   const lucro = receita - custo;
-  const aReceber = pendentes.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
+  const aReceber = pendentes.reduce((s, e) => s + eTv(e), 0);
   const margem = receita > 0 ? ((lucro / receita) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="space-y-6 pb-8">
       <div>
-        <h1 className="text-xl font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>Financeiro</h1>
-        <p className="text-sm mt-0.5" style={{ color: '#44444f' }}>Análise financeira dos empenhos</p>
+        <h1 className="text-xl font-semibold" style={{ color: '#111827', letterSpacing: '-0.02em' }}>Financeiro</h1>
+        <p className="text-sm mt-0.5" style={{ color: '#9ca3af' }}>Análise financeira dos empenhos</p>
       </div>
 
       {alertas.length > 0 && (
@@ -57,23 +59,23 @@ export default function FinanceiroPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Pagos */}
         <div className="surface rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <p className="text-sm font-semibold" style={{ color: '#f0f0f2' }}>Pagos</p>
+          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <p className="text-sm font-semibold" style={{ color: '#111827' }}>Pagos</p>
             <span className="badge-success inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium">{pagos.length}</span>
           </div>
           <div>
             {pagos.length === 0 && <p className="text-center py-8 text-[12px]" style={{ color: '#44444f' }}>Nenhum empenho pago</p>}
             {pagos.map(e => {
-              const tv = e.qtd * e.valorVenda;
-              const lucroItem = e.qtd * (e.valorVenda - e.valorCusto);
+              const tv = eTv(e);
+              const lucroItem = tv - eTc(e);
               return (
-                <div key={e.id} className="flex items-center justify-between px-5 py-3 hover:bg-[#161619] transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                <div key={e.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                   <div>
                     <p className="text-[11px] font-mono" style={{ color: '#60a5fa' }}>{e.numero}</p>
-                    <p className="text-[12px] max-w-[180px] truncate" style={{ color: '#7f7f8c' }} title={e.item}>{e.item}</p>
+                    <p className="text-[12px] max-w-[180px] truncate" style={{ color: '#6b7280' }} title={e.fornecedor}>{e.fornecedor}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[13px] font-semibold tabular-nums" style={{ color: '#f0f0f2' }}>{fmt(tv)}</p>
+                    <p className="text-[13px] font-semibold tabular-nums" style={{ color: '#111827' }}>{fmt(tv)}</p>
                     <p className="text-[11px] tabular-nums" style={{ color: lucroItem >= 0 ? '#4ade80' : '#f87171' }}>
                       {lucroItem >= 0 ? '+' : ''}{fmt(lucroItem)}
                     </p>
@@ -82,9 +84,9 @@ export default function FinanceiroPage() {
               );
             })}
             {pagos.length > 0 && (
-              <div className="flex justify-between px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <span className="text-[11px]" style={{ color: '#44444f' }}>Total recebido</span>
-                <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#4ade80' }}>{fmt(pagos.reduce((s,e) => s+e.qtd*e.valorVenda,0))}</span>
+              <div className="flex justify-between px-5 py-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                <span className="text-[11px]" style={{ color: '#9ca3af' }}>Total recebido</span>
+                <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#16a34a' }}>{fmt(pagos.reduce((s,e) => s+eTv(e),0))}</span>
               </div>
             )}
           </div>
@@ -92,23 +94,23 @@ export default function FinanceiroPage() {
 
         {/* Pendentes */}
         <div className="surface rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <p className="text-sm font-semibold" style={{ color: '#f0f0f2' }}>Pendentes</p>
+          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <p className="text-sm font-semibold" style={{ color: '#111827' }}>Pendentes</p>
             <span className="badge-warning inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium">{pendentes.length}</span>
           </div>
           <div>
             {pendentes.length === 0 && <p className="text-center py-8 text-[12px]" style={{ color: '#44444f' }}>Nenhum empenho pendente</p>}
             {pendentes.map(e => {
-              const tv = e.qtd * e.valorVenda;
-              const alerta = e.valorCusto > e.valorVenda;
+              const tv = eTv(e);
+              const alerta = e.itens.some(i => i.valorCusto > i.valorVenda);
               return (
-                <div key={e.id} className="flex items-center justify-between px-5 py-3 transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', background: alerta ? 'rgba(248,113,113,0.03)' : undefined }}>
+                <div key={e.id} className="flex items-center justify-between px-5 py-3 transition-colors" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: alerta ? 'rgba(248,113,113,0.03)' : undefined }}>
                   <div>
                     <p className="text-[11px] font-mono flex items-center gap-1" style={{ color: '#60a5fa' }}>
                       {alerta && <AlertTriangle className="w-2.5 h-2.5" style={{ color: '#f87171' }} />}
                       {e.numero}
                     </p>
-                    <p className="text-[12px] max-w-[180px] truncate" style={{ color: '#7f7f8c' }} title={e.item}>{e.item}</p>
+                    <p className="text-[12px] max-w-[180px] truncate" style={{ color: '#6b7280' }} title={e.fornecedor}>{e.fornecedor}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[13px] font-semibold tabular-nums" style={{ color: '#fbbf24' }}>{fmt(tv)}</p>
@@ -118,9 +120,9 @@ export default function FinanceiroPage() {
               );
             })}
             {pendentes.length > 0 && (
-              <div className="flex justify-between px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <span className="text-[11px]" style={{ color: '#44444f' }}>Total a receber</span>
-                <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#fbbf24' }}>{fmt(aReceber)}</span>
+              <div className="flex justify-between px-5 py-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                <span className="text-[11px]" style={{ color: '#9ca3af' }}>Total a receber</span>
+                <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#d97706' }}>{fmt(aReceber)}</span>
               </div>
             )}
           </div>

@@ -1,29 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, X, AlertTriangle, Download } from 'lucide-react';
-import { useDemoStore, Empenho, EmpenhoStatus } from '@/store/demoStore';
+import { Plus, Pencil, Trash2, X, AlertTriangle, Download, ChevronDown, ChevronRight } from 'lucide-react';
+import { useDemoStore, Empenho, EmpenhoItem, EmpenhoStatus } from '@/store/demoStore';
 
-function fmt(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+function fmt(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }); }
+function fmtFull(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+
+function totals(e: Empenho) {
+  const tv = e.itens.reduce((s, i) => s + i.qtd * i.valorVenda, 0);
+  const tc = e.itens.reduce((s, i) => s + i.qtd * i.valorCusto, 0);
+  return { tv, tc, lucro: tv - tc };
 }
-function fmtFull(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+
+const emptyItem = (): EmpenhoItem => ({ id: Date.now().toString() + Math.random(), descricao: '', und: 'UN', marca: '', qtd: 0, valorVenda: 0, qtdEntregue: 0, valorCusto: 0 });
 
 const emptyForm: Omit<Empenho, 'id' | 'createdAt'> = {
-  numero: '', item: '', und: 'UN', marca: '', qtd: 0, valorVenda: 0,
-  qtdEntregue: 0, valorCusto: 0, status: 'PENDENTE', nf: '',
-  valorNf: 0, dataEntregaNf: '', responsavelCompra: '', responsavelEntrega: '', observacao: '',
+  numero: '', fornecedor: '', orgao: '', itens: [],
+  status: 'PENDENTE', nf: '', valorNf: 0, dataEntregaNf: '',
+  responsavelCompra: '', responsavelEntrega: '', observacao: '',
 };
 
 export default function EmpenhosPage() {
   const { empenhos, addEmpenho, updateEmpenho, deleteEmpenho, loadFromDB } = useDemoStore();
   const [filter, setFilter] = useState<EmpenhoStatus | 'TODOS'>('TODOS');
-
-  useEffect(() => { loadFromDB(); }, [loadFromDB]);
   const [modal, setModal] = useState<{ open: boolean; editing: Empenho | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Empenho, 'id' | 'createdAt'>>(emptyForm);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  useEffect(() => { loadFromDB(); }, [loadFromDB]);
 
   const filtered = filter === 'TODOS' ? empenhos : empenhos.filter(e => e.status === filter);
   const counts = {
@@ -33,25 +38,21 @@ export default function EmpenhosPage() {
     CANCELADO: empenhos.filter(e => e.status === 'CANCELADO').length,
   };
 
-  const totalVenda = filtered.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
-  const totalCusto = filtered.reduce((s, e) => s + e.qtd * e.valorCusto, 0);
-  const totalLucro = totalVenda - totalCusto;
-  const aReceber = empenhos.filter(e => e.status === 'PENDENTE').reduce((s, e) => s + e.qtd * e.valorVenda, 0);
+  const allTv = filtered.reduce((s, e) => s + totals(e).tv, 0);
+  const allTc = filtered.reduce((s, e) => s + totals(e).tc, 0);
+  const totalLucro = allTv - allTc;
+  const aReceber = empenhos.filter(e => e.status === 'PENDENTE').reduce((s, e) => s + totals(e).tv, 0);
 
-  function exportCSV() {
-    const headers = ['Nº Empenho','Item','Und','Marca','Qtd','Vlr Venda','Total Venda','Qtd Entregue','Vlr Custo','Total Custo','Lucro','Status','NF','Vlr NF','Data Entrega NF','Resp. Compra','Resp. Entrega','Observação','Criado em'];
-    const rows = filtered.map(e => [e.numero,e.item,e.und,e.marca,e.qtd,e.valorVenda,e.qtd*e.valorVenda,e.qtdEntregue,e.valorCusto,e.qtd*e.valorCusto,e.qtd*e.valorVenda-e.qtd*e.valorCusto,e.status,e.nf,e.valorNf,e.dataEntregaNf,e.responsavelCompra,e.responsavelEntrega,e.observacao,e.createdAt]);
-    const csv = [headers,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `empenhos-${new Date().toISOString().split('T')[0]}.csv`; a.click();
-    URL.revokeObjectURL(url);
+  function toggleExpand(id: string) {
+    setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
 
-  function openAdd() { setForm(emptyForm); setModal({ open: true, editing: null }); }
+  function openAdd() {
+    setForm({ ...emptyForm, itens: [emptyItem()] });
+    setModal({ open: true, editing: null });
+  }
   function openEdit(e: Empenho) {
-    setForm({ numero: e.numero, item: e.item, und: e.und, marca: e.marca, qtd: e.qtd, valorVenda: e.valorVenda, qtdEntregue: e.qtdEntregue, valorCusto: e.valorCusto, status: e.status, nf: e.nf, valorNf: e.valorNf, dataEntregaNf: e.dataEntregaNf, responsavelCompra: e.responsavelCompra, responsavelEntrega: e.responsavelEntrega, observacao: e.observacao });
+    setForm({ numero: e.numero, fornecedor: e.fornecedor, orgao: e.orgao, itens: e.itens.map(i => ({ ...i })), status: e.status, nf: e.nf, valorNf: e.valorNf, dataEntregaNf: e.dataEntregaNf, responsavelCompra: e.responsavelCompra, responsavelEntrega: e.responsavelEntrega, observacao: e.observacao });
     setModal({ open: true, editing: e });
   }
   function handleDelete(id: string, numero: string) {
@@ -62,19 +63,40 @@ export default function EmpenhosPage() {
     else addEmpenho(form);
     setModal({ open: false, editing: null });
   }
+  function addItem() { setForm(f => ({ ...f, itens: [...f.itens, emptyItem()] })); }
+  function updateItem(idx: number, field: keyof EmpenhoItem, value: string | number) {
+    setForm(f => ({ ...f, itens: f.itens.map((it, i) => i === idx ? { ...it, [field]: value } : it) }));
+  }
+  function removeItem(idx: number) { setForm(f => ({ ...f, itens: f.itens.filter((_, i) => i !== idx) })); }
 
-  const statusBadgeClass = (s: EmpenhoStatus) => s === 'PAGO' ? 'badge-success' : s === 'PENDENTE' ? 'badge-warning' : 'badge-danger';
-  const statusLabel = (s: EmpenhoStatus) => ({ PAGO: 'Pago', PENDENTE: 'Pendente', CANCELADO: 'Cancelado' }[s]);
+  function exportCSV() {
+    const headers = ['Nº Empenho', 'Fornecedor', 'Órgão', 'Status', 'NF', 'Resp. Compra', 'Resp. Entrega', 'Item #', 'Descrição', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total Venda', 'Qtd Entregue', 'Vlr Custo', 'Total Custo', 'Lucro', 'Criado em'];
+    const rows: (string | number)[][] = [];
+    filtered.forEach(e => {
+      e.itens.forEach((it, idx) => {
+        rows.push([e.numero, e.fornecedor, e.orgao, e.status, e.nf, e.responsavelCompra, e.responsavelEntrega, idx + 1, it.descricao, it.und, it.marca, it.qtd, it.valorVenda, it.qtd * it.valorVenda, it.qtdEntregue, it.valorCusto, it.qtd * it.valorCusto, it.qtd * it.valorVenda - it.qtd * it.valorCusto, e.createdAt]);
+      });
+    });
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `empenhos-${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
 
-  const inputCls = 'input-premium';
+  const sbadge = (s: EmpenhoStatus) => s === 'PAGO' ? 'badge-success' : s === 'PENDENTE' ? 'badge-warning' : 'badge-danger';
+  const slabel = { PAGO: 'Pago', PENDENTE: 'Pendente', CANCELADO: 'Cancelado' };
+
+  const modalItemTv = form.itens.reduce((s, i) => s + i.qtd * i.valorVenda, 0);
+  const modalItemTc = form.itens.reduce((s, i) => s + i.qtd * i.valorCusto, 0);
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>Empenhos</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#44444f' }}>Gestão de notas de empenho</p>
+          <h1 className="text-xl font-semibold" style={{ color: '#111827', letterSpacing: '-0.02em' }}>Empenhos</h1>
+          <p className="text-sm mt-0.5" style={{ color: '#9ca3af' }}>Gestão de notas de empenho</p>
         </div>
         <div className="flex gap-2">
           <button onClick={exportCSV} className="btn-ghost flex items-center gap-1.5">
@@ -86,96 +108,129 @@ export default function EmpenhosPage() {
         </div>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Receita', value: fmt(totalVenda), color: '#f0f0f2' },
-          { label: 'Custo', value: fmt(totalCusto), color: '#7f7f8c' },
-          { label: 'Lucro', value: fmt(totalLucro), color: totalLucro >= 0 ? '#4ade80' : '#f87171' },
-          { label: 'A Receber', value: fmt(aReceber), color: '#fbbf24' },
+          { label: 'Receita', value: fmt(allTv), color: '#111827' },
+          { label: 'Custo', value: fmt(allTc), color: '#6b7280' },
+          { label: 'Lucro', value: fmt(totalLucro), color: totalLucro >= 0 ? '#16a34a' : '#dc2626' },
+          { label: 'A Receber', value: fmt(aReceber), color: '#d97706' },
         ].map(s => (
           <div key={s.label} className="surface rounded-xl px-4 py-3.5">
-            <p className="text-[11px]" style={{ color: '#44444f' }}>{s.label}</p>
+            <p className="text-[11px]" style={{ color: '#9ca3af' }}>{s.label}</p>
             <p className="text-base font-semibold tabular-nums mt-0.5" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Filter tabs */}
       <div className="flex gap-1">
         {(['TODOS', 'PENDENTE', 'PAGO', 'CANCELADO'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-            style={{
-              background: filter === f ? '#1c1c28' : 'transparent',
-              color: filter === f ? '#d4d4f0' : '#44444f',
-              border: filter === f ? '1px solid rgba(59,130,246,0.2)' : '1px solid transparent',
-            }}>
+            style={{ background: filter === f ? '#eff6ff' : 'transparent', color: filter === f ? '#1d4ed8' : '#9ca3af', border: filter === f ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent' }}>
             {f === 'TODOS' ? 'Todos' : f === 'PAGO' ? 'Pagos' : f === 'PENDENTE' ? 'Pendentes' : 'Cancelados'}
-            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#7f7f8c' }}>{counts[f]}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.06)', color: '#6b7280' }}>{counts[f]}</span>
           </button>
         ))}
       </div>
 
-      {/* Table */}
       <div className="surface rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full table-premium">
             <thead>
               <tr>
-                <th>Nº Empenho</th><th>Item</th><th>Und</th><th>Qtd</th>
-                <th>Vlr Venda</th><th>Total Venda</th><th>Vlr Custo</th><th>Total Custo</th>
-                <th>Lucro</th><th>NF</th><th>Status</th><th></th>
+                <th style={{ width: 40 }}></th>
+                <th>Nº Empenho</th>
+                <th>Fornecedor</th>
+                <th>Órgão</th>
+                <th>Itens</th>
+                <th>Total Venda</th>
+                <th>Lucro</th>
+                <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(e => {
-                const tv = e.qtd * e.valorVenda;
-                const tc = e.qtd * e.valorCusto;
-                const lucro = tv - tc;
-                const alerta = e.valorCusto > e.valorVenda;
-                return (
-                  <tr key={e.id} className="group" style={{ background: alerta ? 'rgba(248,113,113,0.03)' : undefined }}>
+                const { tv, lucro } = totals(e);
+                const hasAlert = e.itens.some(i => i.valorCusto > i.valorVenda);
+                const isExpanded = expanded.has(e.id);
+                return [
+                  <tr key={e.id} className="group" style={{ background: hasAlert ? 'rgba(220,38,38,0.02)' : undefined }}>
                     <td>
-                      <span className="font-mono text-[12px]" style={{ color: '#60a5fa' }}>
-                        {alerta && <AlertTriangle className="w-3 h-3 inline mr-1" style={{ color: '#f87171' }} />}
+                      <button onClick={() => toggleExpand(e.id)} className="p-1.5 rounded-md hover:bg-gray-100 transition-colors">
+                        {isExpanded ? <ChevronDown className="w-3.5 h-3.5" style={{ color: '#6b7280' }} /> : <ChevronRight className="w-3.5 h-3.5" style={{ color: '#9ca3af' }} />}
+                      </button>
+                    </td>
+                    <td>
+                      <span className="font-mono text-[12px]" style={{ color: '#2563eb' }}>
+                        {hasAlert && <AlertTriangle className="w-3 h-3 inline mr-1 mb-0.5" style={{ color: '#dc2626' }} />}
                         {e.numero}
                       </span>
                     </td>
-                    <td className="max-w-[160px] truncate" title={e.item} style={{ color: '#d4d4d8' }}>{e.item}</td>
-                    <td style={{ color: '#7f7f8c' }}>{e.und}</td>
-                    <td className="tabular-nums">{e.qtd}</td>
-                    <td className="tabular-nums" style={{ color: '#7f7f8c' }}>{fmtFull(e.valorVenda)}</td>
-                    <td className="tabular-nums font-medium" style={{ color: '#f0f0f2' }}>{fmt(tv)}</td>
-                    <td className="tabular-nums" style={{ color: alerta ? '#f87171' : '#7f7f8c' }}>{fmtFull(e.valorCusto)}</td>
-                    <td className="tabular-nums" style={{ color: '#7f7f8c' }}>{fmt(tc)}</td>
-                    <td className="tabular-nums font-semibold" style={{ color: lucro >= 0 ? '#4ade80' : '#f87171' }}>{fmt(lucro)}</td>
-                    <td style={{ color: '#7f7f8c' }}>{e.nf || '—'}</td>
-                    <td><span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${statusBadgeClass(e.status)}`}>{statusLabel(e.status)}</span></td>
+                    <td className="max-w-[180px] truncate" title={e.fornecedor}>{e.fornecedor}</td>
+                    <td className="max-w-[140px] truncate" title={e.orgao} style={{ color: '#6b7280' }}>{e.orgao}</td>
+                    <td>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.05)', color: '#6b7280' }}>
+                        {e.itens.length} {e.itens.length === 1 ? 'item' : 'itens'}
+                      </span>
+                    </td>
+                    <td className="tabular-nums font-medium" style={{ color: '#111827' }}>{fmt(tv)}</td>
+                    <td className="tabular-nums font-semibold" style={{ color: lucro >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(lucro)}</td>
+                    <td><span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${sbadge(e.status)}`}>{slabel[e.status]}</span></td>
                     <td>
                       <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(e)} className="p-1.5 rounded-md transition-colors" style={{ color: '#60a5fa', background: 'rgba(59,130,246,0.08)' }}>
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                        <button onClick={() => handleDelete(e.id, e.numero)} className="p-1.5 rounded-md transition-colors" style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        <button onClick={() => openEdit(e)} className="p-1.5 rounded-md" style={{ color: '#2563eb', background: 'rgba(59,130,246,0.08)' }}><Pencil className="w-3 h-3" /></button>
+                        <button onClick={() => handleDelete(e.id, e.numero)} className="p-1.5 rounded-md" style={{ color: '#dc2626', background: 'rgba(220,38,38,0.08)' }}><Trash2 className="w-3 h-3" /></button>
                       </div>
                     </td>
-                  </tr>
-                );
+                  </tr>,
+                  isExpanded && (
+                    <tr key={`${e.id}-exp`}>
+                      <td colSpan={9} style={{ padding: 0 }}>
+                        <div className="px-10 py-3" style={{ background: '#f9fafb', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                          <table className="w-full" style={{ fontSize: 12 }}>
+                            <thead>
+                              <tr>
+                                {['#', 'Descrição', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total', 'Qtd Entregue', 'Vlr Custo', 'Lucro'].map(h => (
+                                  <th key={h} className="text-left pb-2 pr-3" style={{ color: '#9ca3af', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {e.itens.map((it, idx) => {
+                                const itv = it.qtd * it.valorVenda;
+                                const itc = it.qtd * it.valorCusto;
+                                const alert = it.valorCusto > it.valorVenda;
+                                return (
+                                  <tr key={it.id} style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                                    <td className="py-2 pr-3" style={{ color: '#9ca3af' }}>{idx + 1}</td>
+                                    <td className="py-2 pr-3" style={{ color: '#374151', maxWidth: 240 }} title={it.descricao}>{it.descricao}</td>
+                                    <td className="py-2 pr-3" style={{ color: '#6b7280' }}>{it.und}</td>
+                                    <td className="py-2 pr-3" style={{ color: '#6b7280' }}>{it.marca || '—'}</td>
+                                    <td className="py-2 pr-3 tabular-nums">{it.qtd}</td>
+                                    <td className="py-2 pr-3 tabular-nums" style={{ color: alert ? '#dc2626' : '#6b7280' }}>{fmtFull(it.valorVenda)}</td>
+                                    <td className="py-2 pr-3 tabular-nums font-medium" style={{ color: '#111827' }}>{fmt(itv)}</td>
+                                    <td className="py-2 pr-3 tabular-nums" style={{ color: '#6b7280' }}>{it.qtdEntregue}</td>
+                                    <td className="py-2 pr-3 tabular-nums" style={{ color: alert ? '#dc2626' : '#9ca3af' }}>{fmtFull(it.valorCusto)}</td>
+                                    <td className="py-2 tabular-nums font-semibold" style={{ color: (itv - itc) >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(itv - itc)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                ].filter(Boolean);
               })}
             </tbody>
             <tfoot>
-              <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <td colSpan={5} className="px-4 py-3 text-[11px]" style={{ color: '#44444f' }}>
-                  {filtered.length} empenho{filtered.length !== 1 ? 's' : ''}
-                </td>
-                <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: '#f0f0f2' }}>{fmt(totalVenda)}</td>
-                <td />
-                <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: '#7f7f8c' }}>{fmt(totalCusto)}</td>
-                <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: totalLucro >= 0 ? '#4ade80' : '#f87171' }}>{fmt(totalLucro)}</td>
-                <td colSpan={3} />
+              <tr style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+                <td colSpan={5} className="px-4 py-3 text-[11px]" style={{ color: '#9ca3af' }}>{filtered.length} empenho{filtered.length !== 1 ? 's' : ''}</td>
+                <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: '#111827' }}>{fmt(allTv)}</td>
+                <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: totalLucro >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(totalLucro)}</td>
+                <td colSpan={2} />
               </tr>
             </tfoot>
           </table>
@@ -184,51 +239,136 @@ export default function EmpenhosPage() {
 
       {/* Modal */}
       {modal.open && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: '#111115', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <h2 className="text-sm font-semibold" style={{ color: '#f0f0f2' }}>{modal.editing ? 'Editar Empenho' : 'Novo Empenho'}</h2>
-              <button onClick={() => setModal({ open: false, editing: null })} className="p-1.5 rounded-lg transition-colors" style={{ color: '#44444f' }}>
-                <X className="w-4 h-4" />
-              </button>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+              <h2 className="text-sm font-semibold" style={{ color: '#111827' }}>{modal.editing ? 'Editar Empenho' : 'Novo Empenho'}</h2>
+              <button onClick={() => setModal({ open: false, editing: null })} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><X className="w-4 h-4" style={{ color: '#6b7280' }} /></button>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
-              {([
-                { label: 'Nº Empenho', key: 'numero', type: 'text' },
-                { label: 'Item / Objeto', key: 'item', type: 'text', full: true },
-                { label: 'Unidade', key: 'und', type: 'text' },
-                { label: 'Marca', key: 'marca', type: 'text' },
-                { label: 'Quantidade', key: 'qtd', type: 'number' },
-                { label: 'Valor de Venda (unit.)', key: 'valorVenda', type: 'number' },
-                { label: 'Qtd Entregue', key: 'qtdEntregue', type: 'number' },
-                { label: 'Valor de Custo (unit.)', key: 'valorCusto', type: 'number' },
-                { label: 'Nº NF', key: 'nf', type: 'text' },
-                { label: 'Valor NF', key: 'valorNf', type: 'number' },
-                { label: 'Data Entrega NF', key: 'dataEntregaNf', type: 'date' },
-                { label: 'Resp. Compra', key: 'responsavelCompra', type: 'text' },
-                { label: 'Resp. Entrega', key: 'responsavelEntrega', type: 'text' },
-              ] as { label: string; key: keyof Omit<Empenho, 'id' | 'createdAt'>; type: string; full?: boolean }[]).map(({ label, key, type, full }) => (
-                <div key={key} className={full ? 'col-span-2' : ''}>
-                  <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>{label}</label>
-                  <input type={type} value={form[key] as string | number}
-                    onChange={ev => setForm(f => ({ ...f, [key]: type === 'number' ? parseFloat(ev.target.value) || 0 : ev.target.value }))}
-                    className={inputCls} />
-                </div>
-              ))}
+
+            <div className="p-6 space-y-6">
+              {/* Identificação */}
               <div>
-                <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Status</label>
-                <select value={form.status} onChange={ev => setForm(f => ({ ...f, status: ev.target.value as EmpenhoStatus }))} className={`${inputCls} select`} style={{ background: '#161619' }}>
-                  <option value="PENDENTE">Pendente</option>
-                  <option value="PAGO">Pago</option>
-                  <option value="CANCELADO">Cancelado</option>
-                </select>
+                <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#9ca3af' }}>Identificação</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Nº Empenho</label>
+                    <input value={form.numero} onChange={e => setForm(f => ({ ...f, numero: e.target.value }))} className="input-premium" placeholder="2026NE000001" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Fornecedor</label>
+                    <input value={form.fornecedor} onChange={e => setForm(f => ({ ...f, fornecedor: e.target.value }))} className="input-premium" placeholder="Razão social do fornecedor" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Órgão</label>
+                    <input value={form.orgao} onChange={e => setForm(f => ({ ...f, orgao: e.target.value }))} className="input-premium" placeholder="Órgão responsável" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>NF</label>
+                    <input value={form.nf} onChange={e => setForm(f => ({ ...f, nf: e.target.value }))} className="input-premium" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Valor NF</label>
+                    <input type="number" value={form.valorNf} onChange={e => setForm(f => ({ ...f, valorNf: parseFloat(e.target.value) || 0 }))} className="input-premium" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Data Entrega NF</label>
+                    <input type="date" value={form.dataEntregaNf} onChange={e => setForm(f => ({ ...f, dataEntregaNf: e.target.value }))} className="input-premium" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Status</label>
+                    <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as EmpenhoStatus }))} className="input-premium select">
+                      <option value="PENDENTE">Pendente</option>
+                      <option value="PAGO">Pago</option>
+                      <option value="CANCELADO">Cancelado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Resp. Compra</label>
+                    <input value={form.responsavelCompra} onChange={e => setForm(f => ({ ...f, responsavelCompra: e.target.value }))} className="input-premium" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Resp. Entrega</label>
+                    <input value={form.responsavelEntrega} onChange={e => setForm(f => ({ ...f, responsavelEntrega: e.target.value }))} className="input-premium" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Observação</label>
+                    <textarea value={form.observacao} onChange={e => setForm(f => ({ ...f, observacao: e.target.value }))} rows={2} className="input-premium" style={{ resize: 'none' }} />
+                  </div>
+                </div>
               </div>
-              <div className="col-span-2">
-                <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Observação</label>
-                <textarea value={form.observacao} onChange={ev => setForm(f => ({ ...f, observacao: ev.target.value }))} rows={2} className={inputCls} style={{ resize: 'none' }} />
+
+              {/* Itens */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#9ca3af' }}>
+                    Itens do Empenho <span style={{ color: '#d97706' }}>({form.itens.length})</span>
+                  </p>
+                  <button onClick={addItem} className="btn-ghost flex items-center gap-1.5 text-[12px] py-1.5 px-3">
+                    <Plus className="w-3 h-3" /> Adicionar Item
+                  </button>
+                </div>
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-premium">
+                      <thead>
+                        <tr>
+                          <th style={{ width: 32 }}>#</th>
+                          <th>Descrição</th>
+                          <th>Und</th>
+                          <th>Marca</th>
+                          <th>Qtd</th>
+                          <th>Vlr Venda (R$)</th>
+                          <th>Qtd Entregue</th>
+                          <th>Vlr Custo (R$)</th>
+                          <th style={{ width: 40 }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {form.itens.map((it, idx) => (
+                          <tr key={it.id}>
+                            <td style={{ color: '#9ca3af', fontSize: 11 }}>{idx + 1}</td>
+                            <td style={{ minWidth: 0 }}>
+                              <input value={it.descricao} onChange={e => updateItem(idx, 'descricao', e.target.value)} className="input-premium" style={{ minWidth: 200 }} placeholder="Descrição do item" />
+                            </td>
+                            <td><input value={it.und} onChange={e => updateItem(idx, 'und', e.target.value)} className="input-premium" style={{ width: 58 }} /></td>
+                            <td><input value={it.marca} onChange={e => updateItem(idx, 'marca', e.target.value)} className="input-premium" style={{ width: 90 }} /></td>
+                            <td><input type="number" value={it.qtd} onChange={e => updateItem(idx, 'qtd', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 72 }} /></td>
+                            <td><input type="number" step="0.01" value={it.valorVenda} onChange={e => updateItem(idx, 'valorVenda', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 100 }} /></td>
+                            <td><input type="number" value={it.qtdEntregue} onChange={e => updateItem(idx, 'qtdEntregue', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 80 }} /></td>
+                            <td><input type="number" step="0.01" value={it.valorCusto} onChange={e => updateItem(idx, 'valorCusto', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 100 }} /></td>
+                            <td>
+                              <button onClick={() => removeItem(idx)} disabled={form.itens.length <= 1} className="p-1.5 rounded-md hover:bg-red-50 transition-colors disabled:opacity-30">
+                                <Trash2 className="w-3.5 h-3.5" style={{ color: '#dc2626' }} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {form.itens.length === 0 && (
+                          <tr><td colSpan={9} className="py-8 text-center text-[12px]" style={{ color: '#9ca3af' }}>Clique em "Adicionar Item"</td></tr>
+                        )}
+                      </tbody>
+                      {form.itens.length > 0 && (
+                        <tfoot>
+                          <tr style={{ borderTop: '1px solid rgba(0,0,0,0.07)', background: '#f9fafb' }}>
+                            <td colSpan={4} className="px-4 py-2.5 text-[11px]" style={{ color: '#9ca3af' }}>Total ({form.itens.length} itens)</td>
+                            <td />
+                            <td className="px-4 py-2.5 text-[12px] font-semibold tabular-nums" style={{ color: '#111827' }}>{fmt(modalItemTv)}</td>
+                            <td />
+                            <td className="px-4 py-2.5 text-[12px] font-semibold tabular-nums" style={{ color: '#6b7280' }}>{fmt(modalItemTc)}</td>
+                            <td className="px-4 py-2.5 text-[12px] font-semibold tabular-nums" style={{ color: (modalItemTv - modalItemTc) >= 0 ? '#16a34a' : '#dc2626' }}>
+                              {fmt(modalItemTv - modalItemTc)} lucro
+                            </td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+
+            <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
               <button onClick={() => setModal({ open: false, editing: null })} className="btn-ghost flex-1">Cancelar</button>
               <button onClick={handleSave} className="btn-primary flex-1">{modal.editing ? 'Salvar Alterações' : 'Criar Empenho'}</button>
             </div>

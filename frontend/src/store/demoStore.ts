@@ -7,16 +7,23 @@ export type EmpenhoStatus = 'PENDENTE' | 'PAGO' | 'CANCELADO';
 export type LicitacaoStatus = 'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA' | 'CANCELADA' | 'SUSPENSA';
 export type LicitacaoModalidade = 'PREGAO_ELETRONICO' | 'PREGAO_PRESENCIAL' | 'CONCORRENCIA' | 'TOMADA_PRECOS' | 'CONVITE' | 'DISPENSA';
 
-export interface Empenho {
+export interface EmpenhoItem {
   id: string;
-  numero: string;
-  item: string;
+  descricao: string;
   und: string;
   marca: string;
   qtd: number;
   valorVenda: number;
   qtdEntregue: number;
   valorCusto: number;
+}
+
+export interface Empenho {
+  id: string;
+  numero: string;
+  fornecedor: string;
+  orgao: string;
+  itens: EmpenhoItem[];
   status: EmpenhoStatus;
   nf: string;
   valorNf: number;
@@ -43,14 +50,54 @@ export interface Licitacao {
 }
 
 const initialEmpenhos: Empenho[] = [
-  { id: '1', numero: '2024NE001', item: 'Material de Escritório - Kit Completo', und: 'KIT', marca: 'Staples', qtd: 100, valorVenda: 125.00, qtdEntregue: 100, valorCusto: 89.00, status: 'PAGO', nf: 'NF-001234', valorNf: 12500.00, dataEntregaNf: '2024-03-15', responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza', observacao: 'Entregue conforme especificado', createdAt: '2024-03-01' },
-  { id: '2', numero: '2024NE002', item: 'Notebook Dell Inspiron 15 i7', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 4500.00, qtdEntregue: 3, valorCusto: 3800.00, status: 'PENDENTE', nf: '', valorNf: 0, dataEntregaNf: '', responsavelCompra: 'Pedro Costa', responsavelEntrega: 'Pedro Costa', observacao: 'Aguardando entrega das 2 unidades restantes', createdAt: '2024-03-05' },
-  { id: '3', numero: '2024NE003', item: 'Cadeiras Ergonômicas Premium', und: 'UN', marca: 'Flexform', qtd: 20, valorVenda: 850.00, qtdEntregue: 20, valorCusto: 920.00, status: 'PENDENTE', nf: 'NF-001235', valorNf: 18400.00, dataEntregaNf: '2024-03-20', responsavelCompra: 'Maria Lima', responsavelEntrega: 'João Ferreira', observacao: 'ATENÇÃO: custo acima do valor de venda', createdAt: '2024-03-08' },
-  { id: '4', numero: '2024NE004', item: 'Papel Sulfite A4 75g - Resma 500fls', und: 'PCT', marca: 'Chamex', qtd: 500, valorVenda: 28.00, qtdEntregue: 500, valorCusto: 19.50, status: 'PAGO', nf: 'NF-001236', valorNf: 14000.00, dataEntregaNf: '2024-03-10', responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza', observacao: '', createdAt: '2024-03-10' },
-  { id: '5', numero: '2024NE005', item: 'Canetas BIC Cristal Azul - Caixa', und: 'CX', marca: 'BIC', qtd: 50, valorVenda: 35.00, qtdEntregue: 0, valorCusto: 28.00, status: 'CANCELADO', nf: '', valorNf: 0, dataEntregaNf: '', responsavelCompra: 'Maria Lima', responsavelEntrega: '', observacao: 'Cancelado por falta de verba', createdAt: '2024-03-12' },
-  { id: '6', numero: '2024NE006', item: 'Toner HP LaserJet Pro M404', und: 'UN', marca: 'HP', qtd: 30, valorVenda: 280.00, qtdEntregue: 30, valorCusto: 195.00, status: 'PAGO', nf: 'NF-001237', valorNf: 8400.00, dataEntregaNf: '2024-04-05', responsavelCompra: 'Pedro Costa', responsavelEntrega: 'João Ferreira', observacao: '', createdAt: '2024-04-01' },
-  { id: '7', numero: '2024NE007', item: 'Monitor LED 24" Full HD LG', und: 'UN', marca: 'LG', qtd: 10, valorVenda: 1200.00, qtdEntregue: 6, valorCusto: 980.00, status: 'PENDENTE', nf: 'NF-001238', valorNf: 7200.00, dataEntregaNf: '2024-04-12', responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza', observacao: '4 monitores pendentes', createdAt: '2024-04-08' },
-  { id: '8', numero: '2024NE008', item: 'Ar Condicionado Split 12000 BTUs Inverter', und: 'UN', marca: 'LG', qtd: 8, valorVenda: 3200.00, qtdEntregue: 8, valorCusto: 2650.00, status: 'PAGO', nf: 'NF-001239', valorNf: 25600.00, dataEntregaNf: '2024-04-20', responsavelCompra: 'Maria Lima', responsavelEntrega: 'João Ferreira', observacao: 'Instalação inclusa', createdAt: '2024-04-15' },
+  {
+    id: '1', numero: '2026NE000395', fornecedor: 'IMPACTA EMPREENDIMENTOS LTDA', orgao: 'Comando da Aeronáutica - BABV',
+    itens: [
+      { id: '1-1', descricao: 'Açúcar Cristal Orgânico Pacote 1kg', und: 'UN', marca: '', qtd: 450, valorVenda: 4.00, qtdEntregue: 450, valorCusto: 3.20 },
+      { id: '1-2', descricao: 'Arroz Beneficiado Agulhinha Polido Tipo 1', und: 'UN', marca: '', qtd: 750, valorVenda: 4.85, qtdEntregue: 750, valorCusto: 3.90 },
+      { id: '1-3', descricao: 'Farinha de Mandioca Amarela Fina Tipo 1', und: 'UN', marca: '', qtd: 91, valorVenda: 4.20, qtdEntregue: 91, valorCusto: 3.50 },
+      { id: '1-4', descricao: 'Feijão Carioca Tipo 1', und: 'UN', marca: '', qtd: 250, valorVenda: 5.80, qtdEntregue: 250, valorCusto: 4.60 },
+      { id: '1-5', descricao: 'Óleo Vegetal Soja Tipo 1 Embalagem 900ml', und: 'UN', marca: '', qtd: 120, valorVenda: 7.50, qtdEntregue: 120, valorCusto: 6.20 },
+      { id: '1-6', descricao: 'Refrigerante Cola Embalagem 350ml', und: 'UN', marca: '', qtd: 100, valorVenda: 3.25, qtdEntregue: 100, valorCusto: 2.80 },
+      { id: '1-7', descricao: 'Refrigerante Guaraná Embalagem 350ml', und: 'UN', marca: '', qtd: 100, valorVenda: 3.25, qtdEntregue: 100, valorCusto: 2.80 },
+    ],
+    status: 'PAGO', nf: 'NF-001234', valorNf: 8819.90, dataEntregaNf: '2024-03-15',
+    responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza',
+    observacao: '', createdAt: '2024-03-01',
+  },
+  {
+    id: '2', numero: '2024NE002', fornecedor: 'Dell Computadores do Brasil LTDA', orgao: 'Secretaria de Educação - SP',
+    itens: [
+      { id: '2-1', descricao: 'Notebook Dell Inspiron 15 i7 16GB RAM 512GB SSD', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 4500.00, qtdEntregue: 3, valorCusto: 3800.00 },
+      { id: '2-2', descricao: 'Mouse sem fio Dell WM326', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 120.00, qtdEntregue: 3, valorCusto: 85.00 },
+      { id: '2-3', descricao: 'Teclado Dell KB216 USB ABNT2', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 95.00, qtdEntregue: 3, valorCusto: 65.00 },
+    ],
+    status: 'PENDENTE', nf: '', valorNf: 0, dataEntregaNf: '',
+    responsavelCompra: 'Pedro Costa', responsavelEntrega: 'Pedro Costa',
+    observacao: 'Aguardando entrega das 2 unidades restantes', createdAt: '2024-03-05',
+  },
+  {
+    id: '3', numero: '2024NE003', fornecedor: 'Flexform Móveis e Decorações LTDA', orgao: 'Prefeitura Municipal de Campinas',
+    itens: [
+      { id: '3-1', descricao: 'Cadeira Ergonômica Premium com apoio lombar', und: 'UN', marca: 'Flexform', qtd: 15, valorVenda: 850.00, qtdEntregue: 15, valorCusto: 920.00 },
+      { id: '3-2', descricao: 'Mesa de Escritório formato L 1,80m x 1,20m', und: 'UN', marca: 'Flexform', qtd: 5, valorVenda: 1200.00, qtdEntregue: 5, valorCusto: 980.00 },
+    ],
+    status: 'PENDENTE', nf: 'NF-001235', valorNf: 18400.00, dataEntregaNf: '2024-03-20',
+    responsavelCompra: 'Maria Lima', responsavelEntrega: 'João Ferreira',
+    observacao: 'ATENÇÃO: custo da cadeira acima do valor de venda', createdAt: '2024-03-08',
+  },
+  {
+    id: '4', numero: '2024NE004', fornecedor: 'Distribuidora Papel Sul LTDA', orgao: 'TRT 2ª Região',
+    itens: [
+      { id: '4-1', descricao: 'Papel Sulfite A4 75g Resma 500 folhas', und: 'PCT', marca: 'Chamex', qtd: 500, valorVenda: 28.00, qtdEntregue: 500, valorCusto: 19.50 },
+      { id: '4-2', descricao: 'Caneta BIC Cristal Azul caixa 50 unidades', und: 'CX', marca: 'BIC', qtd: 50, valorVenda: 35.00, qtdEntregue: 50, valorCusto: 22.00 },
+      { id: '4-3', descricao: 'Grampeador Maped médio 26/6', und: 'UN', marca: 'Maped', qtd: 20, valorVenda: 45.00, qtdEntregue: 20, valorCusto: 32.00 },
+      { id: '4-4', descricao: 'Clipes para papel 50mm caixa 100 unidades', und: 'CX', marca: 'Spiral', qtd: 100, valorVenda: 5.50, qtdEntregue: 100, valorCusto: 3.80 },
+    ],
+    status: 'PAGO', nf: 'NF-001236', valorNf: 17450.00, dataEntregaNf: '2024-03-10',
+    responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza',
+    observacao: '', createdAt: '2024-03-10',
+  },
 ];
 
 const initialLicitacoes: Licitacao[] = [
