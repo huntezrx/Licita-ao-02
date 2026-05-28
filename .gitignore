@@ -68,3 +68,4 @@ frontend/out/
 
 # NestJS
 backend/dist/
+frontend/next-env.d.ts
