@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Bell, Shield, Building2, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 
@@ -19,26 +19,30 @@ export default function ConfiguracoesPage() {
 
   function handleSave() {
     setSaved(true);
-    toast.success('Configurações salvas com sucesso!');
-    setTimeout(() => setSaved(false), 3000);
+    toast.success('Configurações salvas');
+    setTimeout(() => setSaved(false), 2500);
   }
 
-  const inputCls = 'w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all placeholder-slate-600';
+  const inputCls = 'input-premium';
+
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="surface rounded-xl overflow-hidden">
+      <div className="px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <p className="text-sm font-semibold" style={{ color: '#f0f0f2' }}>{title}</p>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-4 max-w-2xl pb-8">
       <div>
-        <h1 className="text-5xl font-black gradient-title glow-title tracking-tight leading-none">Configurações</h1>
-        <p className="text-slate-500 mt-2 text-sm">Gerencie suas preferências e dados da conta</p>
+        <h1 className="text-xl font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>Configurações</h1>
+        <p className="text-sm mt-0.5" style={{ color: '#44444f' }}>Preferências da conta</p>
       </div>
 
-      {/* Profile */}
-      <div className="neo-card rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="p-2 rounded-xl" style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.15)' }}><User className="w-4 h-4 text-cyan-400" /></div>
-          <h2 className="font-semibold text-white">Perfil</h2>
-        </div>
-        <div className="p-6 grid grid-cols-2 gap-4">
+      <Section title="Perfil">
+        <div className="grid grid-cols-2 gap-4">
           {([
             { label: 'Nome completo', key: 'name' },
             { label: 'Email', key: 'email', type: 'email' },
@@ -47,87 +51,69 @@ export default function ConfiguracoesPage() {
             { label: 'Empresa', key: 'empresa', full: true },
           ] as { label: string; key: keyof typeof profile; type?: string; full?: boolean }[]).map(({ label, key, type, full }) => (
             <div key={key} className={full ? 'col-span-2' : ''}>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
+              <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>{label}</label>
               <input type={type || 'text'} value={profile[key]} onChange={e => setProfile(p => ({ ...p, [key]: e.target.value }))} className={inputCls} />
             </div>
           ))}
         </div>
-      </div>
+      </Section>
 
-      {/* Notifications */}
-      <div className="neo-card rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="p-2 rounded-xl" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)' }}><Bell className="w-4 h-4 text-violet-400" /></div>
-          <h2 className="font-semibold text-white">Notificações</h2>
-        </div>
-        <div className="p-6 space-y-4">
+      <Section title="Notificações">
+        <div className="space-y-1">
           {[
-            { key: 'email' as const, label: 'Notificações por e-mail', desc: 'Receba atualizações no seu e-mail' },
+            { key: 'email' as const, label: 'Notificações por e-mail', desc: 'Atualizações enviadas ao seu e-mail' },
             { key: 'empenhosPendentes' as const, label: 'Empenhos pendentes', desc: 'Alertas de empenhos não resolvidos' },
             { key: 'novasLicitacoes' as const, label: 'Novas licitações', desc: 'Notificações de novas oportunidades' },
-            { key: 'vencimentos' as const, label: 'Vencimentos próximos', desc: 'Alertas 3 dias antes do vencimento' },
+            { key: 'vencimentos' as const, label: 'Vencimentos próximos', desc: 'Alertas 3 dias antes do prazo' },
           ].map(({ key, label, desc }) => (
-            <div key={key} className="flex items-center justify-between py-2">
+            <div key={key} className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <div>
-                <p className="text-sm font-medium text-white">{label}</p>
-                <p className="text-xs text-slate-400">{desc}</p>
+                <p className="text-sm font-medium" style={{ color: '#d4d4d8' }}>{label}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: '#44444f' }}>{desc}</p>
               </div>
-              <button
-                onClick={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
-                className="relative w-11 h-6 rounded-full transition-all"
-                style={notifs[key] ? { background: 'linear-gradient(135deg, #7c3aed, #2563eb)', boxShadow: '0 0 12px rgba(124,58,237,0.4)' } : { background: 'rgba(255,255,255,0.1)' }}
-              >
-                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${notifs[key] ? 'left-5' : 'left-0.5'}`} />
+              <button onClick={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
+                className="relative w-9 h-5 rounded-full transition-all flex-shrink-0"
+                style={{ background: notifs[key] ? '#3b82f6' : 'rgba(255,255,255,0.08)' }}>
+                <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  style={{ left: notifs[key] ? 'calc(100% - 18px)' : '2px' }} />
               </button>
             </div>
           ))}
         </div>
-      </div>
+      </Section>
 
-      {/* Security */}
-      <div className="neo-card rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="p-2 rounded-xl" style={{ background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.15)' }}><Shield className="w-4 h-4" style={{ color: '#00ff88' }} /></div>
-          <h2 className="font-semibold text-white">Segurança</h2>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="neo-card rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">Alterar Senha</p>
-              <p className="text-xs text-slate-400">Última alteração: nunca</p>
-            </div>
-            <button onClick={() => toast.info('Disponível na versão com backend')} className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white text-xs font-medium transition-all">Alterar</button>
-          </div>
-          <div className="neo-card rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">Autenticação em 2 Fatores</p>
-              <p className="text-xs text-slate-400">Adicione uma camada extra de segurança</p>
-            </div>
-            <button onClick={() => toast.info('Disponível na versão com backend')} className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white text-xs font-medium transition-all">Ativar</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Company */}
-      <div className="neo-card rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="p-2 rounded-xl" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)' }}><Building2 className="w-4 h-4 text-amber-400" /></div>
-          <h2 className="font-semibold text-white">Dados do Sistema</h2>
-        </div>
-        <div className="p-6">
-          <div className="neo-card rounded-xl p-4 space-y-2">
-            {[['Versão', '1.0.0 Demo'], ['Modo', 'Demonstração (sem backend)'], ['Usuário', user?.role || 'SUPER_ADMIN'], ['Armazenamento', 'LocalStorage (navegador)']].map(([k, v]) => (
-              <div key={k} className="flex justify-between text-sm">
-                <span className="text-slate-400">{k}</span>
-                <span className="text-white font-medium">{v}</span>
+      <Section title="Segurança">
+        <div className="space-y-2">
+          {[
+            { label: 'Alterar Senha', desc: 'Última alteração: nunca' },
+            { label: 'Autenticação 2FA', desc: 'Adicione uma camada extra de segurança' },
+          ].map(item => (
+            <div key={item.label} className="flex items-center justify-between py-2.5 px-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div>
+                <p className="text-sm font-medium" style={{ color: '#d4d4d8' }}>{item.label}</p>
+                <p className="text-[11px]" style={{ color: '#44444f' }}>{item.desc}</p>
               </div>
-            ))}
-          </div>
+              <button onClick={() => toast.info('Disponível com backend')} className="btn-ghost text-[12px] py-1.5 px-3">Configurar</button>
+            </div>
+          ))}
         </div>
-      </div>
+      </Section>
 
-      <button onClick={handleSave} className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all shadow-lg ${saved ? 'text-white' : 'btn-neon text-white'}`} style={saved ? { background: 'rgba(0,255,136,0.15)', border: '1px solid rgba(0,255,136,0.3)', color: '#00ff88' } : {}}>
-        {saved && <Check className="w-4 h-4" />}
+      <Section title="Sistema">
+        <div className="space-y-2">
+          {[['Versão', '1.0.0 Demo'], ['Modo', 'Demonstração'], ['Papel', user?.role || 'SUPER_ADMIN'], ['Dados', 'LocalStorage']].map(([k, v]) => (
+            <div key={k} className="flex justify-between text-sm py-1">
+              <span style={{ color: '#44444f' }}>{k}</span>
+              <span style={{ color: '#7f7f8c' }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <button onClick={handleSave}
+        className="flex items-center gap-2 btn-primary"
+        style={{ padding: '9px 20px' }}>
+        {saved && <Check className="w-3.5 h-3.5" />}
         {saved ? 'Salvo!' : 'Salvar Configurações'}
       </button>
     </div>

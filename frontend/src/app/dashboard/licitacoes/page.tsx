@@ -4,40 +4,39 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, X, Search } from 'lucide-react';
 import { useDemoStore, Licitacao, LicitacaoStatus, LicitacaoModalidade } from '@/store/demoStore';
 
-function fmt(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+function fmt(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }); }
 
-const modalidadeLabels: Record<LicitacaoModalidade, string> = {
+const modalidadeLabel: Record<LicitacaoModalidade, string> = {
   PREGAO_ELETRONICO: 'Pregão Eletrônico', PREGAO_PRESENCIAL: 'Pregão Presencial',
   CONCORRENCIA: 'Concorrência', TOMADA_PRECOS: 'Tomada de Preços',
-  CONVITE: 'Convite', DISPENSA: 'Dispensa de Licitação',
+  CONVITE: 'Convite', DISPENSA: 'Dispensa',
+};
+
+const statusCfg: Record<LicitacaoStatus, { label: string; badge: string }> = {
+  ABERTA: { label: 'Aberta', badge: 'badge-success' },
+  EM_ANDAMENTO: { label: 'Em Andamento', badge: 'badge-blue' },
+  CONCLUIDA: { label: 'Concluída', badge: 'badge-neutral' },
+  CANCELADA: { label: 'Cancelada', badge: 'badge-danger' },
+  SUSPENSA: { label: 'Suspensa', badge: 'badge-warning' },
 };
 
 const emptyForm: Omit<Licitacao, 'id' | 'createdAt'> = {
   numero: '', objeto: '', orgao: '', modalidade: 'PREGAO_ELETRONICO',
-  valorEstimado: 0, dataAbertura: '', status: 'ABERTA',
-  edital: '', responsavel: '', observacao: '',
-};
-
-const statusConfig: Record<LicitacaoStatus, { label: string; style: React.CSSProperties }> = {
-  ABERTA: { label: 'Aberta', style: { background: 'rgba(6,182,212,0.1)', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.2)' } },
-  EM_ANDAMENTO: { label: 'Em Andamento', style: { background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)' } },
-  CONCLUIDA: { label: 'Concluída', style: { background: 'rgba(0,255,136,0.1)', color: '#00ff88', border: '1px solid rgba(0,255,136,0.2)' } },
-  CANCELADA: { label: 'Cancelada', style: { background: 'rgba(255,56,96,0.1)', color: '#ff3860', border: '1px solid rgba(255,56,96,0.2)' } },
-  SUSPENSA: { label: 'Suspensa', style: { background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' } },
+  valorEstimado: 0, dataAbertura: '', status: 'ABERTA', edital: '', responsavel: '', observacao: '',
 };
 
 export default function LicitacoesPage() {
   const { licitacoes, addLicitacao, updateLicitacao, deleteLicitacao } = useDemoStore();
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState<LicitacaoStatus | 'TODAS'>('TODAS');
+  const [filterStatus, setFilterStatus] = useState<LicitacaoStatus | 'TODOS'>('TODOS');
   const [modal, setModal] = useState<{ open: boolean; editing: Licitacao | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Licitacao, 'id' | 'createdAt'>>(emptyForm);
 
   const filtered = licitacoes
-    .filter(l => filterStatus === 'TODAS' || l.status === filterStatus)
-    .filter(l => !search || l.numero.toLowerCase().includes(search.toLowerCase()) || l.objeto.toLowerCase().includes(search.toLowerCase()) || l.orgao.toLowerCase().includes(search.toLowerCase()));
+    .filter(l => filterStatus === 'TODOS' || l.status === filterStatus)
+    .filter(l => !search || [l.numero, l.objeto, l.orgao].some(s => s.toLowerCase().includes(search.toLowerCase())));
 
-  const counts: Record<string, number> = { TODAS: licitacoes.length };
+  const counts: Record<string, number> = { TODOS: licitacoes.length };
   licitacoes.forEach(l => { counts[l.status] = (counts[l.status] || 0) + 1; });
 
   function openAdd() { setForm(emptyForm); setModal({ open: true, editing: null }); }
@@ -46,7 +45,7 @@ export default function LicitacoesPage() {
     setModal({ open: true, editing: l });
   }
   function handleDelete(id: string, numero: string) {
-    if (window.confirm(`Confirmar exclusão da licitação ${numero}?`)) deleteLicitacao(id);
+    if (window.confirm(`Excluir ${numero}?`)) deleteLicitacao(id);
   }
   function handleSave() {
     if (modal.editing) updateLicitacao(modal.editing.id, form);
@@ -54,130 +53,142 @@ export default function LicitacoesPage() {
     setModal({ open: false, editing: null });
   }
 
+  const inputCls = 'input-premium';
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 pb-8">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-5xl font-black gradient-title glow-title tracking-tight leading-none">Licitações</h1>
-          <p className="text-slate-500 mt-2 text-sm">Gerencie processos licitatórios</p>
+          <h1 className="text-xl font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>Licitações</h1>
+          <p className="text-sm mt-0.5" style={{ color: '#44444f' }}>Processos licitatórios</p>
         </div>
-        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-xl btn-neon text-white font-medium text-sm">
-          <Plus className="w-4 h-4" /> Nova Licitação
+        <button onClick={openAdd} className="btn-primary flex items-center gap-1.5">
+          <Plus className="w-3.5 h-3.5" /> Nova Licitação
         </button>
       </div>
 
-      {/* Summary */}
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total', value: licitacoes.length, color: 'text-white' },
-          { label: 'Abertas', value: counts['ABERTA'] || 0, style: { color: '#67e8f9' } },
-          { label: 'Em Andamento', value: counts['EM_ANDAMENTO'] || 0, style: { color: '#a78bfa' } },
-          { label: 'Concluídas', value: counts['CONCLUIDA'] || 0, style: { color: '#00ff88' } },
+          { label: 'Total', value: licitacoes.length, color: '#f0f0f2' },
+          { label: 'Abertas', value: counts['ABERTA'] || 0, color: '#4ade80' },
+          { label: 'Em Andamento', value: counts['EM_ANDAMENTO'] || 0, color: '#60a5fa' },
+          { label: 'Concluídas', value: counts['CONCLUIDA'] || 0, color: '#7f7f8c' },
         ].map(s => (
-          <div key={s.label} className="neo-card rounded-xl p-4">
-            <p className="text-xs text-slate-400">{s.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${'color' in s ? s.color : ''}`} style={'style' in s ? s.style : {}}>{s.value}</p>
+          <div key={s.label} className="surface rounded-xl px-4 py-3.5">
+            <p className="text-[11px]" style={{ color: '#44444f' }}>{s.label}</p>
+            <p className="text-2xl font-semibold tabular-nums mt-0.5" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Filters + Search */}
-      <div className="flex flex-wrap gap-3 items-center">
+      {/* Controls */}
+      <div className="flex flex-wrap gap-2 items-center">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar licitação..." className="pl-9 pr-4 py-2 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all w-64" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#44444f' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
+            className="input-premium pl-8 w-56 text-[12px]" style={{ padding: '7px 12px 7px 32px' }} />
         </div>
-        {(['TODAS', 'ABERTA', 'EM_ANDAMENTO', 'CONCLUIDA', 'CANCELADA', 'SUSPENSA'] as const).map(f => (
-          <button key={f} onClick={() => setFilterStatus(f)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${filterStatus === f ? 'btn-neon text-white' : 'neo-card text-slate-400 hover:text-white'}`}>
-            {f === 'TODAS' ? 'Todas' : statusConfig[f as LicitacaoStatus]?.label || f}
-            <span className={`px-1.5 py-0.5 rounded-full ${filterStatus === f ? 'bg-white/20' : 'bg-white/10'}`}>{counts[f] || 0}</span>
-          </button>
-        ))}
+        <div className="flex gap-1">
+          {(['TODOS', 'ABERTA', 'EM_ANDAMENTO', 'CONCLUIDA', 'CANCELADA', 'SUSPENSA'] as const).map(f => (
+            <button key={f} onClick={() => setFilterStatus(f)}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all"
+              style={{
+                background: filterStatus === f ? '#1c1c28' : 'transparent',
+                color: filterStatus === f ? '#d4d4f0' : '#44444f',
+                border: filterStatus === f ? '1px solid rgba(59,130,246,0.2)' : '1px solid transparent',
+              }}>
+              {f === 'TODOS' ? 'Todos' : f === 'EM_ANDAMENTO' ? 'Andamento' : statusCfg[f as LicitacaoStatus]?.label}
+              {' '}({counts[f] || 0})
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Cards grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {filtered.map(l => (
-          <div key={l.id} className="neo-card rounded-2xl p-5 group transition-all">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <span className="text-xs font-mono" style={{ color: '#a78bfa' }}>{l.numero}</span>
-                <h3 className="text-sm font-semibold text-white mt-0.5 leading-tight">{l.objeto}</h3>
+          <div key={l.id} className="surface surface-hover rounded-xl p-5 group">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="font-mono text-[11px]" style={{ color: '#60a5fa' }}>{l.numero}</span>
+                  <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-medium ${statusCfg[l.status].badge}`}>{statusCfg[l.status].label}</span>
+                </div>
+                <p className="text-sm font-medium leading-tight" style={{ color: '#d4d4d8' }}>{l.objeto}</p>
+                <p className="text-[12px] mt-1" style={{ color: '#44444f' }}>{l.orgao}</p>
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => openEdit(l)} className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                <button onClick={() => handleDelete(l.id, l.numero)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                <button onClick={() => openEdit(l)} className="p-1.5 rounded-md" style={{ color: '#60a5fa', background: 'rgba(59,130,246,0.08)' }}>
+                  <Pencil className="w-3 h-3" />
+                </button>
+                <button onClick={() => handleDelete(l.id, l.numero)} className="p-1.5 rounded-md" style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
+                  <Trash2 className="w-3 h-3" />
+                </button>
               </div>
             </div>
-            <p className="text-xs text-slate-400 mb-3">{l.orgao}</p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium" style={statusConfig[l.status].style}>{statusConfig[l.status].label}</span>
-                <span className="text-xs text-slate-500">{modalidadeLabels[l.modalidade]}</span>
-              </div>
+            <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <span className="text-[11px]" style={{ color: '#44444f' }}>{modalidadeLabel[l.modalidade]}</span>
               <div className="text-right">
-                <p className="text-sm font-bold text-white">{fmt(l.valorEstimado)}</p>
-                <p className="text-xs text-slate-500">{l.dataAbertura ? new Date(l.dataAbertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</p>
+                <p className="text-sm font-semibold tabular-nums" style={{ color: '#f0f0f2' }}>{fmt(l.valorEstimado)}</p>
+                {l.dataAbertura && <p className="text-[10px]" style={{ color: '#44444f' }}>{new Date(l.dataAbertura + 'T12:00:00').toLocaleDateString('pt-BR')}</p>}
               </div>
             </div>
-            {l.observacao && <p className="text-xs text-slate-500 mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>{l.observacao}</p>}
+            {l.observacao && <p className="text-[11px] mt-2" style={{ color: '#44444f' }}>{l.observacao}</p>}
           </div>
         ))}
+        {filtered.length === 0 && (
+          <div className="col-span-2 py-16 text-center">
+            <p className="text-sm" style={{ color: '#44444f' }}>Nenhuma licitação encontrada</p>
+          </div>
+        )}
       </div>
 
       {/* Modal */}
       {modal.open && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="neo-card rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <h2 className="text-xl font-black gradient-title">{modal.editing ? 'Editar Licitação' : 'Nova Licitação'}</h2>
-              <button onClick={() => setModal({ open: false, editing: null })} className="p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: '#111115', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h2 className="text-sm font-semibold" style={{ color: '#f0f0f2' }}>{modal.editing ? 'Editar Licitação' : 'Nova Licitação'}</h2>
+              <button onClick={() => setModal({ open: false, editing: null })} className="p-1.5 rounded-md" style={{ color: '#44444f' }}><X className="w-4 h-4" /></button>
             </div>
             <div className="p-6 grid grid-cols-2 gap-4">
               {([
                 { label: 'Número', key: 'numero' },
                 { label: 'Órgão', key: 'orgao' },
                 { label: 'Objeto', key: 'objeto', full: true },
-                { label: 'Valor Estimado', key: 'valorEstimado', type: 'number' },
-                { label: 'Data Abertura', key: 'dataAbertura', type: 'date' },
+                { label: 'Valor Estimado (R$)', key: 'valorEstimado', type: 'number' },
+                { label: 'Data de Abertura', key: 'dataAbertura', type: 'date' },
                 { label: 'Responsável', key: 'responsavel' },
                 { label: 'Edital', key: 'edital' },
               ] as { label: string; key: keyof Omit<Licitacao, 'id' | 'createdAt'>; type?: string; full?: boolean }[]).map(({ label, key, type, full }) => (
                 <div key={key} className={full ? 'col-span-2' : ''}>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
-                  <input
-                    type={type || 'text'}
-                    value={form[key] as string | number}
+                  <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>{label}</label>
+                  <input type={type || 'text'} value={form[key] as string | number}
                     onChange={ev => setForm(f => ({ ...f, [key]: type === 'number' ? parseFloat(ev.target.value) || 0 : ev.target.value }))}
-                    className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all"
-                  />
+                    className={inputCls} />
                 </div>
               ))}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Modalidade</label>
-                <select value={form.modalidade} onChange={ev => setForm(f => ({ ...f, modalidade: ev.target.value as LicitacaoModalidade }))}
-                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all">
-                  {Object.entries(modalidadeLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Modalidade</label>
+                <select value={form.modalidade} onChange={ev => setForm(f => ({ ...f, modalidade: ev.target.value as LicitacaoModalidade }))} className={inputCls} style={{ background: '#161619' }}>
+                  {Object.entries(modalidadeLabel).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Status</label>
-                <select value={form.status} onChange={ev => setForm(f => ({ ...f, status: ev.target.value as LicitacaoStatus }))}
-                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all">
-                  {Object.entries(statusConfig).map(([v, { label }]) => <option key={v} value={v}>{label}</option>)}
+                <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Status</label>
+                <select value={form.status} onChange={ev => setForm(f => ({ ...f, status: ev.target.value as LicitacaoStatus }))} className={inputCls} style={{ background: '#161619' }}>
+                  {Object.entries(statusCfg).map(([v, { label }]) => <option key={v} value={v}>{label}</option>)}
                 </select>
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Observação</label>
-                <textarea value={form.observacao} onChange={ev => setForm(f => ({ ...f, observacao: ev.target.value }))} rows={2}
-                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all resize-none" />
+                <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Observação</label>
+                <textarea value={form.observacao} onChange={ev => setForm(f => ({ ...f, observacao: ev.target.value }))} rows={2} className={inputCls} style={{ resize: 'none' }} />
               </div>
             </div>
-            <div className="flex gap-3 p-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <button onClick={() => setModal({ open: false, editing: null })} className="flex-1 py-2.5 rounded-xl neo-card text-slate-300 hover:text-white text-sm font-medium">Cancelar</button>
-              <button onClick={handleSave} className="flex-1 py-2.5 rounded-xl btn-neon text-white font-medium text-sm">
-                {modal.editing ? 'Salvar' : 'Criar'}
-              </button>
+            <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={() => setModal({ open: false, editing: null })} className="btn-ghost flex-1">Cancelar</button>
+              <button onClick={handleSave} className="btn-primary flex-1">{modal.editing ? 'Salvar' : 'Criar'}</button>
             </div>
           </div>
         </div>

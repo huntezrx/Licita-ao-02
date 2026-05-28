@@ -1,159 +1,128 @@
 'use client';
 
 import { useDemoStore } from '@/store/demoStore';
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
-function fmt(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+function fmt(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }); }
 
 export default function FinanceiroPage() {
   const { empenhos } = useDemoStore();
 
   const pagos = empenhos.filter(e => e.status === 'PAGO');
   const pendentes = empenhos.filter(e => e.status === 'PENDENTE');
-
-  const receitaTotal = empenhos.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
-  const custoTotal = empenhos.reduce((s, e) => s + e.qtd * e.valorCusto, 0);
-  const lucroTotal = receitaTotal - custoTotal;
-  const receitaPaga = pagos.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
-  const receitaPendente = pendentes.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
-  const margem = receitaTotal > 0 ? (lucroTotal / receitaTotal) * 100 : 0;
   const alertas = empenhos.filter(e => e.valorCusto > e.valorVenda);
 
+  const receita = empenhos.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
+  const custo = empenhos.reduce((s, e) => s + e.qtd * e.valorCusto, 0);
+  const lucro = receita - custo;
+  const aReceber = pendentes.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
+  const margem = receita > 0 ? ((lucro / receita) * 100).toFixed(1) : '0.0';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <div>
-        <h1 className="text-5xl font-black gradient-title glow-title tracking-tight leading-none">Financeiro</h1>
-        <p className="text-slate-500 mt-2 text-sm">Resumo financeiro dos empenhos</p>
+        <h1 className="text-xl font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>Financeiro</h1>
+        <p className="text-sm mt-0.5" style={{ color: '#44444f' }}>Análise financeira dos empenhos</p>
       </div>
 
       {alertas.length > 0 && (
-        <div className="flex items-start gap-3 p-4 rounded-xl" style={{ background: 'rgba(255,56,96,0.08)', border: '1px solid rgba(255,56,96,0.2)' }}>
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#ff3860' }} />
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#f87171' }} />
           <div>
-            <p className="text-sm font-semibold" style={{ color: '#ff3860' }}>Atenção: {alertas.length} empenho(s) com custo maior que venda</p>
-            <p className="text-xs text-slate-400 mt-0.5">{alertas.map(e => e.numero).join(', ')}</p>
+            <p className="text-sm font-medium" style={{ color: '#fca5a5' }}>
+              {alertas.length} empenho{alertas.length > 1 ? 's' : ''} com custo acima do valor de venda
+            </p>
+            <p className="text-[12px] mt-0.5" style={{ color: '#7f7f8c' }}>{alertas.map(e => e.numero).join(', ')}</p>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Receita Total */}
-        <div className="neo-card rounded-2xl p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-slate-400">Receita Total</p>
-              <p className="text-xl font-bold mt-1" style={{ color: '#00ff88', textShadow: '0 0 10px rgba(0,255,136,0.4)' }}>{fmt(receitaTotal)}</p>
-              <p className="text-xs text-slate-500 mt-1">Todos os empenhos</p>
-            </div>
-            <div className="p-2.5 rounded-xl" style={{ background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.15)' }}>
-              <DollarSign className="w-4 h-4" style={{ color: '#00ff88' }} />
-            </div>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {[
+          { label: 'Receita Total', value: fmt(receita), sub: `${empenhos.length} empenhos`, color: '#f0f0f2' },
+          { label: 'Custo Total', value: fmt(custo), sub: 'Valor de aquisição', color: '#7f7f8c' },
+          { label: 'Lucro Líquido', value: fmt(lucro), sub: `Margem ${margem}%`, color: lucro >= 0 ? '#4ade80' : '#f87171' },
+          { label: 'A Receber', value: fmt(aReceber), sub: `${pendentes.length} pendentes`, color: '#fbbf24' },
+        ].map(k => (
+          <div key={k.label} className="surface rounded-xl px-5 py-4">
+            <p className="text-[11px]" style={{ color: '#44444f' }}>{k.label}</p>
+            <p className="text-2xl font-semibold tabular-nums mt-1.5" style={{ color: k.color, letterSpacing: '-0.02em' }}>{k.value}</p>
+            <p className="text-[11px] mt-0.5" style={{ color: '#44444f' }}>{k.sub}</p>
           </div>
-        </div>
-
-        {/* Custo Total */}
-        <div className="neo-card rounded-2xl p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-slate-400">Custo Total</p>
-              <p className="text-xl font-bold text-white mt-1">{fmt(custoTotal)}</p>
-              <p className="text-xs text-slate-500 mt-1">Total investido</p>
-            </div>
-            <div className="p-2.5 rounded-xl" style={{ background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.2)' }}>
-              <TrendingDown className="w-4 h-4 text-slate-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Lucro Bruto */}
-        <div className="neo-card rounded-2xl p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-slate-400">Lucro Bruto</p>
-              <p className="text-xl font-bold mt-1" style={lucroTotal >= 0 ? { color: '#00ff88', textShadow: '0 0 10px rgba(0,255,136,0.4)' } : { color: '#ff3860', textShadow: '0 0 10px rgba(255,56,96,0.4)' }}>{fmt(lucroTotal)}</p>
-              <p className="text-xs text-slate-500 mt-1">Margem: {margem.toFixed(1)}%</p>
-            </div>
-            <div className="p-2.5 rounded-xl" style={lucroTotal >= 0 ? { background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.15)' } : { background: 'rgba(255,56,96,0.08)', border: '1px solid rgba(255,56,96,0.15)' }}>
-              {lucroTotal >= 0
-                ? <TrendingUp className="w-4 h-4" style={{ color: '#00ff88' }} />
-                : <TrendingDown className="w-4 h-4" style={{ color: '#ff3860' }} />
-              }
-            </div>
-          </div>
-        </div>
-
-        {/* A Receber */}
-        <div className="neo-card rounded-2xl p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-slate-400">A Receber</p>
-              <p className="text-xl font-bold text-amber-400 mt-1">{fmt(receitaPendente)}</p>
-              <p className="text-xs text-slate-500 mt-1">{pendentes.length} empenhos</p>
-            </div>
-            <div className="p-2.5 rounded-xl" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)' }}>
-              <AlertCircle className="w-4 h-4 text-amber-400" />
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Received */}
-        <div className="neo-card rounded-2xl overflow-hidden">
-          <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <h2 className="font-semibold gradient-title">Empenhos Pagos</h2>
+      {/* Two columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Pagos */}
+        <div className="surface rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <p className="text-sm font-semibold" style={{ color: '#f0f0f2' }}>Pagos</p>
+            <span className="badge-success inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium">{pagos.length}</span>
           </div>
           <div>
+            {pagos.length === 0 && <p className="text-center py-8 text-[12px]" style={{ color: '#44444f' }}>Nenhum empenho pago</p>}
             {pagos.map(e => {
+              const tv = e.qtd * e.valorVenda;
               const lucroItem = e.qtd * (e.valorVenda - e.valorCusto);
               return (
-                <div key={e.id} className="px-6 py-3 flex items-center justify-between hover:bg-white/[0.02]" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div key={e.id} className="flex items-center justify-between px-5 py-3 hover:bg-[#161619] transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                   <div>
-                    <p className="text-sm font-medium text-white">{e.numero}</p>
-                    <p className="text-xs text-slate-400 truncate max-w-[200px]">{e.item}</p>
+                    <p className="text-[11px] font-mono" style={{ color: '#60a5fa' }}>{e.numero}</p>
+                    <p className="text-[12px] max-w-[180px] truncate" style={{ color: '#7f7f8c' }} title={e.item}>{e.item}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold" style={{ color: '#00ff88' }}>{fmt(e.qtd * e.valorVenda)}</p>
-                    <p className="text-xs" style={lucroItem >= 0 ? { color: '#00ff88' } : { color: '#ff3860' }}>Lucro: {fmt(lucroItem)}</p>
-                  </div>
-                </div>
-              );
-            })}
-            <div className="px-6 py-3 flex justify-between" style={{ background: 'rgba(255,255,255,0.02)' }}>
-              <span className="text-xs font-semibold text-slate-400 uppercase">Total Recebido</span>
-              <span className="text-sm font-bold" style={{ color: '#00ff88' }}>{fmt(receitaPaga)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Pending */}
-        <div className="neo-card rounded-2xl overflow-hidden">
-          <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <h2 className="font-semibold gradient-title">Empenhos Pendentes</h2>
-          </div>
-          <div>
-            {pendentes.map(e => {
-              const alerta = e.valorCusto > e.valorVenda;
-              const lucroItem = e.qtd * (e.valorVenda - e.valorCusto);
-              return (
-                <div key={e.id} className="px-6 py-3 flex items-center justify-between hover:bg-white/[0.02]" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: alerta ? 'rgba(255,56,96,0.05)' : 'transparent' }}>
-                  <div>
-                    <p className="text-sm font-medium text-white">{e.numero}</p>
-                    <p className="text-xs text-slate-400 truncate max-w-[200px]">{e.item}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-amber-400">{fmt(e.qtd * e.valorVenda)}</p>
-                    <p className="text-xs" style={alerta ? { color: '#ff3860' } : { color: '#94a3b8' }}>
-                      {alerta ? '⚠ Prejuízo: ' : 'Lucro: '}{fmt(lucroItem)}
+                    <p className="text-[13px] font-semibold tabular-nums" style={{ color: '#f0f0f2' }}>{fmt(tv)}</p>
+                    <p className="text-[11px] tabular-nums" style={{ color: lucroItem >= 0 ? '#4ade80' : '#f87171' }}>
+                      {lucroItem >= 0 ? '+' : ''}{fmt(lucroItem)}
                     </p>
                   </div>
                 </div>
               );
             })}
-            <div className="px-6 py-3 flex justify-between" style={{ background: 'rgba(255,255,255,0.02)' }}>
-              <span className="text-xs font-semibold text-slate-400 uppercase">Total Pendente</span>
-              <span className="text-sm font-bold text-amber-400">{fmt(receitaPendente)}</span>
-            </div>
+            {pagos.length > 0 && (
+              <div className="flex justify-between px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <span className="text-[11px]" style={{ color: '#44444f' }}>Total recebido</span>
+                <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#4ade80' }}>{fmt(pagos.reduce((s,e) => s+e.qtd*e.valorVenda,0))}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Pendentes */}
+        <div className="surface rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <p className="text-sm font-semibold" style={{ color: '#f0f0f2' }}>Pendentes</p>
+            <span className="badge-warning inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium">{pendentes.length}</span>
+          </div>
+          <div>
+            {pendentes.length === 0 && <p className="text-center py-8 text-[12px]" style={{ color: '#44444f' }}>Nenhum empenho pendente</p>}
+            {pendentes.map(e => {
+              const tv = e.qtd * e.valorVenda;
+              const alerta = e.valorCusto > e.valorVenda;
+              return (
+                <div key={e.id} className="flex items-center justify-between px-5 py-3 transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', background: alerta ? 'rgba(248,113,113,0.03)' : undefined }}>
+                  <div>
+                    <p className="text-[11px] font-mono flex items-center gap-1" style={{ color: '#60a5fa' }}>
+                      {alerta && <AlertTriangle className="w-2.5 h-2.5" style={{ color: '#f87171' }} />}
+                      {e.numero}
+                    </p>
+                    <p className="text-[12px] max-w-[180px] truncate" style={{ color: '#7f7f8c' }} title={e.item}>{e.item}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[13px] font-semibold tabular-nums" style={{ color: '#fbbf24' }}>{fmt(tv)}</p>
+                    <p className="text-[10px]" style={{ color: '#44444f' }}>a receber</p>
+                  </div>
+                </div>
+              );
+            })}
+            {pendentes.length > 0 && (
+              <div className="flex justify-between px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <span className="text-[11px]" style={{ color: '#44444f' }}>Total a receber</span>
+                <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#fbbf24' }}>{fmt(aReceber)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
