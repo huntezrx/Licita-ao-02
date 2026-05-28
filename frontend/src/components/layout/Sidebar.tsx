@@ -6,23 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   FileText,
-  Newspaper,
   FileSignature,
-  Send,
-  Users,
   DollarSign,
-  FolderOpen,
-  Bot,
-  CheckSquare,
   BarChart2,
   Settings,
-  Shield,
-  User,
   ChevronLeft,
   ChevronRight,
-  Building2,
-  Zap,
-  Globe,
 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
@@ -33,42 +22,21 @@ const navigation = [
     group: 'Principal',
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { name: 'Empenhos', href: '/dashboard/empenhos', icon: FileSignature },
       { name: 'Licitações', href: '/dashboard/licitacoes', icon: FileText },
-      { name: 'Editais', href: '/dashboard/editais', icon: Newspaper },
-      { name: 'Contratos', href: '/dashboard/contratos', icon: FileSignature },
-      { name: 'Propostas', href: '/dashboard/propostas', icon: Send },
     ],
   },
   {
-    group: 'CRM',
-    items: [
-      { name: 'Pipeline', href: '/dashboard/crm/pipeline', icon: Zap },
-      { name: 'CRM', href: '/dashboard/crm', icon: Building2 },
-    ],
-  },
-  {
-    group: 'Gestão',
+    group: 'Financeiro',
     items: [
       { name: 'Financeiro', href: '/dashboard/financeiro', icon: DollarSign },
-      { name: 'Documentos', href: '/dashboard/documentos', icon: FolderOpen },
-      { name: 'Tarefas', href: '/dashboard/tarefas', icon: CheckSquare },
-      { name: 'Equipes', href: '/dashboard/equipes', icon: Users },
-    ],
-  },
-  {
-    group: 'Inteligência',
-    items: [
-      { name: 'Assistente IA', href: '/dashboard/ia', icon: Bot },
       { name: 'Relatórios', href: '/dashboard/relatorios', icon: BarChart2 },
-      { name: 'Rastreador', href: '/dashboard/crawler', icon: Globe },
     ],
   },
   {
     group: 'Conta',
     items: [
-      { name: 'Perfil', href: '/dashboard/perfil', icon: User },
       { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
-      { name: 'Admin', href: '/dashboard/admin', icon: Shield, adminOnly: true },
     ],
   },
 ];
