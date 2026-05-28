@@ -132,7 +132,6 @@ export const useDemoStore = create<DemoStore>()(
       dbLoaded: false,
 
       loadFromDB: async () => {
-        if (get().dbLoaded) return;
         const [empenhos, licitacoes] = await Promise.all([
           dbEmpenhos.getAll(),
           dbLicitacoes.getAll(),

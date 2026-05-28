@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useDemoStore } from '@/store/demoStore';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
@@ -13,7 +14,8 @@ function fmtNum(v: number) {
 }
 
 export default function DashboardPage() {
-  const { empenhos, licitacoes } = useDemoStore();
+  const { empenhos, licitacoes, loadFromDB } = useDemoStore();
+  useEffect(() => { loadFromDB(); }, [loadFromDB]);
 
   function empenhoTv(e: typeof empenhos[0]) { return e.itens.reduce((s, i) => s + i.qtd * i.valorVenda, 0); }
   function empenhoCusto(e: typeof empenhos[0]) { return e.itens.reduce((s, i) => s + i.qtd * i.valorCusto, 0); }
