@@ -15,7 +15,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, setUser, logout } = useAuthStore();
+  const { isAuthenticated, user, setUser, logout } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -24,13 +24,16 @@ export default function DashboardLayout({
       return;
     }
 
+    // Skip backend profile refresh for demo mode
+    if (user?.id === 'demo-001') return;
+
     authService.getProfile()
       .then(setUser)
       .catch(() => {
         logout();
         router.replace('/login');
       });
-  }, [isAuthenticated, setUser, logout, router]);
+  }, [isAuthenticated, user, setUser, logout, router]);
 
   if (!isAuthenticated) {
     return (
