@@ -145,7 +145,7 @@ export function LicitationsTable({ onNewLicitation }: LicitationsTableProps) {
               }
             : undefined
         }
-        onRowClick={(row) => router.push(`/licitacoes/${row.id}`)}
+        onRowClick={(row) => router.push(`/dashboard/licitacoes/${row.id}`)}
       />
     </div>
   );
