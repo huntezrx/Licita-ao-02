@@ -1,6 +1,7 @@
 'use client';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { dbEmpenhos, dbLicitacoes } from '@/services/db.service';
 
 export type EmpenhoStatus = 'PENDENTE' | 'PAGO' | 'CANCELADO';
 export type LicitacaoStatus = 'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA' | 'CANCELADA' | 'SUSPENSA';
@@ -64,26 +65,73 @@ const initialLicitacoes: Licitacao[] = [
 interface DemoStore {
   empenhos: Empenho[];
   licitacoes: Licitacao[];
+  dbLoaded: boolean;
+  // CRUD
   addEmpenho: (e: Omit<Empenho, 'id' | 'createdAt'>) => void;
   updateEmpenho: (id: string, e: Partial<Empenho>) => void;
   deleteEmpenho: (id: string) => void;
   addLicitacao: (l: Omit<Licitacao, 'id' | 'createdAt'>) => void;
   updateLicitacao: (id: string, l: Partial<Licitacao>) => void;
   deleteLicitacao: (id: string) => void;
+  // Supabase sync
+  loadFromDB: () => Promise<void>;
 }
 
 export const useDemoStore = create<DemoStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       empenhos: initialEmpenhos,
       licitacoes: initialLicitacoes,
-      addEmpenho: (e) => set((s) => ({ empenhos: [...s.empenhos, { ...e, id: Date.now().toString(), createdAt: new Date().toISOString().split('T')[0] }] })),
-      updateEmpenho: (id, e) => set((s) => ({ empenhos: s.empenhos.map((x) => x.id === id ? { ...x, ...e } : x) })),
-      deleteEmpenho: (id) => set((s) => ({ empenhos: s.empenhos.filter((x) => x.id !== id) })),
-      addLicitacao: (l) => set((s) => ({ licitacoes: [...s.licitacoes, { ...l, id: Date.now().toString(), createdAt: new Date().toISOString().split('T')[0] }] })),
-      updateLicitacao: (id, l) => set((s) => ({ licitacoes: s.licitacoes.map((x) => x.id === id ? { ...x, ...l } : x) })),
-      deleteLicitacao: (id) => set((s) => ({ licitacoes: s.licitacoes.filter((x) => x.id !== id) })),
+      dbLoaded: false,
+
+      loadFromDB: async () => {
+        if (get().dbLoaded) return;
+        const [empenhos, licitacoes] = await Promise.all([
+          dbEmpenhos.getAll(),
+          dbLicitacoes.getAll(),
+        ]);
+        if (empenhos !== null && licitacoes !== null) {
+          set({ empenhos, licitacoes, dbLoaded: true });
+        }
+      },
+
+      addEmpenho: (e) => {
+        const novo: Empenho = { ...e, id: Date.now().toString(), createdAt: new Date().toISOString().split('T')[0] };
+        set((s) => ({ empenhos: [novo, ...s.empenhos] }));
+        dbEmpenhos.upsert(novo);
+      },
+
+      updateEmpenho: (id, e) => {
+        set((s) => ({ empenhos: s.empenhos.map((x) => x.id === id ? { ...x, ...e } : x) }));
+        const updated = get().empenhos.find((x) => x.id === id);
+        if (updated) dbEmpenhos.upsert(updated);
+      },
+
+      deleteEmpenho: (id) => {
+        set((s) => ({ empenhos: s.empenhos.filter((x) => x.id !== id) }));
+        dbEmpenhos.delete(id);
+      },
+
+      addLicitacao: (l) => {
+        const nova: Licitacao = { ...l, id: Date.now().toString(), createdAt: new Date().toISOString().split('T')[0] };
+        set((s) => ({ licitacoes: [nova, ...s.licitacoes] }));
+        dbLicitacoes.upsert(nova);
+      },
+
+      updateLicitacao: (id, l) => {
+        set((s) => ({ licitacoes: s.licitacoes.map((x) => x.id === id ? { ...x, ...l } : x) }));
+        const updated = get().licitacoes.find((x) => x.id === id);
+        if (updated) dbLicitacoes.upsert(updated);
+      },
+
+      deleteLicitacao: (id) => {
+        set((s) => ({ licitacoes: s.licitacoes.filter((x) => x.id !== id) }));
+        dbLicitacoes.delete(id);
+      },
     }),
-    { name: 'demo-data-store' }
+    {
+      name: 'demo-data-store',
+      partialize: (s) => ({ empenhos: s.empenhos, licitacoes: s.licitacoes }),
+    }
   )
 );

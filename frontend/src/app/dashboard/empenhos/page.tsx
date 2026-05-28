@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, X, AlertTriangle, Download } from 'lucide-react';
 import { useDemoStore, Empenho, EmpenhoStatus } from '@/store/demoStore';
 
@@ -18,8 +18,10 @@ const emptyForm: Omit<Empenho, 'id' | 'createdAt'> = {
 };
 
 export default function EmpenhosPage() {
-  const { empenhos, addEmpenho, updateEmpenho, deleteEmpenho } = useDemoStore();
+  const { empenhos, addEmpenho, updateEmpenho, deleteEmpenho, loadFromDB } = useDemoStore();
   const [filter, setFilter] = useState<EmpenhoStatus | 'TODOS'>('TODOS');
+
+  useEffect(() => { loadFromDB(); }, [loadFromDB]);
   const [modal, setModal] = useState<{ open: boolean; editing: Empenho | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Empenho, 'id' | 'createdAt'>>(emptyForm);
 
@@ -35,6 +37,17 @@ export default function EmpenhosPage() {
   const totalCusto = filtered.reduce((s, e) => s + e.qtd * e.valorCusto, 0);
   const totalLucro = totalVenda - totalCusto;
   const aReceber = empenhos.filter(e => e.status === 'PENDENTE').reduce((s, e) => s + e.qtd * e.valorVenda, 0);
+
+  function exportCSV() {
+    const headers = ['Nº Empenho','Item','Und','Marca','Qtd','Vlr Venda','Total Venda','Qtd Entregue','Vlr Custo','Total Custo','Lucro','Status','NF','Vlr NF','Data Entrega NF','Resp. Compra','Resp. Entrega','Observação','Criado em'];
+    const rows = filtered.map(e => [e.numero,e.item,e.und,e.marca,e.qtd,e.valorVenda,e.qtd*e.valorVenda,e.qtdEntregue,e.valorCusto,e.qtd*e.valorCusto,e.qtd*e.valorVenda-e.qtd*e.valorCusto,e.status,e.nf,e.valorNf,e.dataEntregaNf,e.responsavelCompra,e.responsavelEntrega,e.observacao,e.createdAt]);
+    const csv = [headers,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `empenhos-${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function openAdd() { setForm(emptyForm); setModal({ open: true, editing: null }); }
   function openEdit(e: Empenho) {
@@ -64,8 +77,8 @@ export default function EmpenhosPage() {
           <p className="text-sm mt-0.5" style={{ color: '#44444f' }}>Gestão de notas de empenho</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => alert('Exportação disponível com backend')} className="btn-ghost flex items-center gap-1.5">
-            <Download className="w-3.5 h-3.5" /> Exportar
+          <button onClick={exportCSV} className="btn-ghost flex items-center gap-1.5">
+            <Download className="w-3.5 h-3.5" /> Exportar CSV
           </button>
           <button onClick={openAdd} className="btn-primary flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5" /> Novo Empenho

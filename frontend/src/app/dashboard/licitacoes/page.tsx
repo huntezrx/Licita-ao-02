@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Pencil, Trash2, X, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Pencil, Trash2, X, Search, Download } from 'lucide-react';
 import { useDemoStore, Licitacao, LicitacaoStatus, LicitacaoModalidade } from '@/store/demoStore';
 
 function fmt(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }); }
@@ -26,7 +26,9 @@ const emptyForm: Omit<Licitacao, 'id' | 'createdAt'> = {
 };
 
 export default function LicitacoesPage() {
-  const { licitacoes, addLicitacao, updateLicitacao, deleteLicitacao } = useDemoStore();
+  const { licitacoes, addLicitacao, updateLicitacao, deleteLicitacao, loadFromDB } = useDemoStore();
+
+  useEffect(() => { loadFromDB(); }, [loadFromDB]);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<LicitacaoStatus | 'TODOS'>('TODOS');
   const [modal, setModal] = useState<{ open: boolean; editing: Licitacao | null }>({ open: false, editing: null });
@@ -38,6 +40,17 @@ export default function LicitacoesPage() {
 
   const counts: Record<string, number> = { TODOS: licitacoes.length };
   licitacoes.forEach(l => { counts[l.status] = (counts[l.status] || 0) + 1; });
+
+  function exportCSV() {
+    const headers = ['Número','Objeto','Órgão','Modalidade','Valor Estimado','Data Abertura','Status','Edital','Responsável','Observação','Criado em'];
+    const rows = filtered.map(l => [l.numero,l.objeto,l.orgao,modalidadeLabel[l.modalidade],l.valorEstimado,l.dataAbertura,statusCfg[l.status].label,l.edital,l.responsavel,l.observacao,l.createdAt]);
+    const csv = [headers,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `licitacoes-${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function openAdd() { setForm(emptyForm); setModal({ open: true, editing: null }); }
   function openEdit(l: Licitacao) {
@@ -62,9 +75,14 @@ export default function LicitacoesPage() {
           <h1 className="text-xl font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>Licitações</h1>
           <p className="text-sm mt-0.5" style={{ color: '#44444f' }}>Processos licitatórios</p>
         </div>
-        <button onClick={openAdd} className="btn-primary flex items-center gap-1.5">
-          <Plus className="w-3.5 h-3.5" /> Nova Licitação
-        </button>
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="btn-ghost flex items-center gap-1.5">
+            <Download className="w-3.5 h-3.5" /> Exportar CSV
+          </button>
+          <button onClick={openAdd} className="btn-primary flex items-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Nova Licitação
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
