@@ -176,8 +176,18 @@ export const useDemoStore = create<DemoStore>()(
       },
     }),
     {
-      name: 'demo-data-store',
+      name: 'licitanex-data-v2',
       partialize: (s) => ({ empenhos: s.empenhos, licitacoes: s.licitacoes }),
+      merge: (persisted: unknown, current) => {
+        const p = persisted as Partial<typeof current>;
+        const empenhos = (p.empenhos ?? current.empenhos).map((e: Empenho) => ({
+          ...e,
+          itens: Array.isArray(e.itens) ? e.itens : [],
+          fornecedor: e.fornecedor ?? '',
+          orgao: e.orgao ?? '',
+        }));
+        return { ...current, ...p, empenhos };
+      },
     }
   )
 );
