@@ -32,43 +32,43 @@ const navigation = [
   {
     group: 'Principal',
     items: [
-      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-      { name: 'Licitações', href: '/licitacoes', icon: FileText },
-      { name: 'Editais', href: '/editais', icon: Newspaper },
-      { name: 'Contratos', href: '/contratos', icon: FileSignature },
-      { name: 'Propostas', href: '/propostas', icon: Send },
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { name: 'Licitações', href: '/dashboard/licitacoes', icon: FileText },
+      { name: 'Editais', href: '/dashboard/editais', icon: Newspaper },
+      { name: 'Contratos', href: '/dashboard/contratos', icon: FileSignature },
+      { name: 'Propostas', href: '/dashboard/propostas', icon: Send },
     ],
   },
   {
     group: 'CRM',
     items: [
-      { name: 'Pipeline', href: '/crm/pipeline', icon: Zap },
-      { name: 'CRM', href: '/crm', icon: Building2 },
+      { name: 'Pipeline', href: '/dashboard/crm/pipeline', icon: Zap },
+      { name: 'CRM', href: '/dashboard/crm', icon: Building2 },
     ],
   },
   {
     group: 'Gestão',
     items: [
-      { name: 'Financeiro', href: '/financeiro', icon: DollarSign },
-      { name: 'Documentos', href: '/documentos', icon: FolderOpen },
-      { name: 'Tarefas', href: '/tarefas', icon: CheckSquare },
-      { name: 'Equipes', href: '/equipes', icon: Users },
+      { name: 'Financeiro', href: '/dashboard/financeiro', icon: DollarSign },
+      { name: 'Documentos', href: '/dashboard/documentos', icon: FolderOpen },
+      { name: 'Tarefas', href: '/dashboard/tarefas', icon: CheckSquare },
+      { name: 'Equipes', href: '/dashboard/equipes', icon: Users },
     ],
   },
   {
     group: 'Inteligência',
     items: [
-      { name: 'Assistente IA', href: '/ia', icon: Bot },
-      { name: 'Relatórios', href: '/relatorios', icon: BarChart2 },
-      { name: 'Rastreador', href: '/crawler', icon: Globe },
+      { name: 'Assistente IA', href: '/dashboard/ia', icon: Bot },
+      { name: 'Relatórios', href: '/dashboard/relatorios', icon: BarChart2 },
+      { name: 'Rastreador', href: '/dashboard/crawler', icon: Globe },
     ],
   },
   {
     group: 'Conta',
     items: [
-      { name: 'Perfil', href: '/perfil', icon: User },
-      { name: 'Configurações', href: '/configuracoes', icon: Settings },
-      { name: 'Admin', href: '/admin', icon: Shield, adminOnly: true },
+      { name: 'Perfil', href: '/dashboard/perfil', icon: User },
+      { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
+      { name: 'Admin', href: '/dashboard/admin', icon: Shield, adminOnly: true },
     ],
   },
 ];
@@ -79,7 +79,7 @@ export function Sidebar() {
   const { user } = useAuthStore();
 
   const isActive = (href: string) => {
-    if (href === '/') return pathname === '/';
+    if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
   };
 
