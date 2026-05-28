@@ -1,0 +1,598 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  ANALYST
+  VIEWER
+}
+
+enum LicitationStatus {
+  PROSPECTING
+  ANALYZING
+  IN_PROGRESS
+  SUBMITTED
+  WON
+  LOST
+  CANCELLED
+  SUSPENDED
+}
+
+enum LicitationModality {
+  PREGAO_ELETRONICO
+  PREGAO_PRESENCIAL
+  CONCORRENCIA
+  TOMADA_DE_PRECOS
+  CONVITE
+  CONCURSO
+  LEILAO
+  DIALOGO_COMPETITIVO
+  DISPENSA
+  INEXIGIBILIDADE
+  RDC
+}
+
+enum NoticeStatus {
+  PENDING
+  ANALYZING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+  EXPIRED
+  CANCELLED
+}
+
+enum ProposalStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum DocumentType {
+  EDITAL
+  PROPOSTA
+  CONTRATO
+  HABILITACAO
+  RECURSO
+  ATA
+  NOTA_EMPENHO
+  NF_FATURA
+  LAUDO
+  CERTIFICADO
+  OTHER
+}
+
+enum FinancialType {
+  REVENUE
+  EXPENSE
+  INVESTMENT
+  PROVISION
+  REFUND
+}
+
+enum FinancialStatus {
+  PENDING
+  PAID
+  CANCELLED
+  OVERDUE
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  REMINDER
+  DEADLINE
+}
+
+enum AIHistoryType {
+  SUMMARIZE
+  ANALYZE_RISKS
+  GENERATE_PROPOSAL
+  EXTRACT_REQUIREMENTS
+  CHAT
+  CLASSIFY
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+  INACTIVE
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ActivityType {
+  CREATED
+  UPDATED
+  DELETED
+  STATUS_CHANGED
+  COMMENT_ADDED
+  DOCUMENT_UPLOADED
+  DOCUMENT_DELETED
+  ASSIGNED
+  UNASSIGNED
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGED
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+}
+
+enum CrawlerStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum CrawlerSource {
+  PNCP
+  COMPRASNET
+  BECLOUDPROCUREMENT
+  LICITANET
+  MANUAL
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String
+  password          String
+  role              UserRole  @default(ANALYST)
+  avatar            String?
+  phone             String?
+  isActive          Boolean   @default(true)
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?
+  refreshToken      String?
+  lastLogin         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  teamMembers       TeamMember[]
+  assignedLicitations Licitation[] @relation("AssignedLicitations")
+  notifications     Notification[]
+  aiHistories       AIHistory[]
+  assignedLeads     Lead[]     @relation("AssignedLeads")
+  assignedTasks     Task[]     @relation("AssignedTasks")
+  activities        Activity[]
+  auditLogs         AuditLog[]
+  uploadedDocuments Document[] @relation("UploadedDocuments")
+
+  @@map("users")
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  members     TeamMember[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now())
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model Licitation {
+  id             String             @id @default(cuid())
+  number         String             @unique
+  title          String
+  organ          String
+  modality       LicitationModality
+  status         LicitationStatus   @default(PROSPECTING)
+  estimatedValue Decimal?           @db.Decimal(15, 2)
+  finalValue     Decimal?           @db.Decimal(15, 2)
+  openingDate    DateTime?
+  closingDate    DateTime?
+  description    String?            @db.Text
+  editalUrl      String?
+  pncpId         String?
+  comprasnetId   String?
+  category       String?
+  tags           String[]
+  assignedToId   String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  assignedTo     User?              @relation("AssignedLicitations", fields: [assignedToId], references: [id])
+  documents      Document[]         @relation("LicitationDocuments")
+  proposals      Proposal[]
+  contracts      Contract[]
+  activities     Activity[]         @relation("LicitationActivities")
+  financials     Financial[]        @relation("LicitationFinancials")
+  tasks          Task[]             @relation("LicitationTasks")
+  aiHistories    AIHistory[]        @relation("LicitationAIHistories")
+
+  @@index([status])
+  @@index([modality])
+  @@index([openingDate])
+  @@index([assignedToId])
+  @@map("licitations")
+}
+
+model Notice {
+  id              String       @id @default(cuid())
+  title           String
+  organ           String
+  number          String?
+  openingDate     DateTime?
+  value           Decimal?     @db.Decimal(15, 2)
+  modality        String?
+  status          NoticeStatus @default(PENDING)
+  source          CrawlerSource
+  rawContent      String?      @db.Text
+  iaResume        String?      @db.Text
+  iaRisks         String[]
+  iaRequirements  String[]
+  sourceUrl       String?
+  publishedAt     DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([status])
+  @@index([source])
+  @@index([openingDate])
+  @@map("notices")
+}
+
+model Contract {
+  id           String         @id @default(cuid())
+  number       String         @unique
+  licitationId String?
+  title        String
+  value        Decimal        @db.Decimal(15, 2)
+  startDate    DateTime
+  endDate      DateTime
+  status       ContractStatus @default(DRAFT)
+  description  String?        @db.Text
+  parties      Json?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  licitation   Licitation?    @relation(fields: [licitationId], references: [id])
+  documents    Document[]     @relation("ContractDocuments")
+  financials   Financial[]    @relation("ContractFinancials")
+  activities   Activity[]     @relation("ContractActivities")
+
+  @@index([status])
+  @@index([licitationId])
+  @@map("contracts")
+}
+
+model Proposal {
+  id           String         @id @default(cuid())
+  licitationId String
+  title        String
+  value        Decimal        @db.Decimal(15, 2)
+  status       ProposalStatus @default(DRAFT)
+  submittedAt  DateTime?
+  notes        String?        @db.Text
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relations
+  licitation   Licitation     @relation(fields: [licitationId], references: [id])
+  documents    Document[]     @relation("ProposalDocuments")
+
+  @@index([status])
+  @@index([licitationId])
+  @@map("proposals")
+}
+
+model Document {
+  id           String       @id @default(cuid())
+  name         String
+  originalName String
+  type         DocumentType @default(OTHER)
+  url          String
+  s3Key        String
+  size         Int
+  mimeType     String
+  version      Int          @default(1)
+  tags         String[]
+  ocrText      String?      @db.Text
+  expiresAt    DateTime?
+  uploadedById String?
+  licitationId String?
+  contractId   String?
+  proposalId   String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  uploadedBy   User?        @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+  licitation   Licitation?  @relation("LicitationDocuments", fields: [licitationId], references: [id])
+  contract     Contract?    @relation("ContractDocuments", fields: [contractId], references: [id])
+  proposal     Proposal?    @relation("ProposalDocuments", fields: [proposalId], references: [id])
+
+  @@index([type])
+  @@index([licitationId])
+  @@index([contractId])
+  @@map("documents")
+}
+
+model Financial {
+  id           String          @id @default(cuid())
+  type         FinancialType
+  description  String
+  value        Decimal         @db.Decimal(15, 2)
+  category     String
+  licitationId String?
+  contractId   String?
+  date         DateTime
+  dueDate      DateTime?
+  status       FinancialStatus @default(PENDING)
+  notes        String?         @db.Text
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // Relations
+  licitation   Licitation?     @relation("LicitationFinancials", fields: [licitationId], references: [id])
+  contract     Contract?       @relation("ContractFinancials", fields: [contractId], references: [id])
+
+  @@index([type])
+  @@index([status])
+  @@index([date])
+  @@map("financials")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  read      Boolean          @default(false)
+  readAt    DateTime?
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}
+
+model AIHistory {
+  id           String        @id @default(cuid())
+  userId       String
+  type         AIHistoryType
+  prompt       String        @db.Text
+  response     String        @db.Text
+  tokens       Int           @default(0)
+  cost         Decimal       @default(0) @db.Decimal(10, 6)
+  licitationId String?
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id])
+  licitation   Licitation?   @relation("LicitationAIHistories", fields: [licitationId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@map("ai_histories")
+}
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  cnpj      String    @unique
+  email     String?
+  phone     String?
+  address   Json?
+  website   String?
+  notes     String?   @db.Text
+  tags      String[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  contacts  Contact[]
+  leads     Lead[]
+
+  @@index([cnpj])
+  @@map("companies")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  position  String?
+  companyId String?
+  notes     String?  @db.Text
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company   Company? @relation(fields: [companyId], references: [id])
+  leads     Lead[]   @relation("ContactLeads")
+
+  @@index([companyId])
+  @@map("contacts")
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  name         String
+  email        String?
+  phone        String?
+  companyId    String?
+  contactId    String?
+  status       LeadStatus @default(NEW)
+  source       String?
+  assignedToId String?
+  tags         String[]
+  notes        String?    @db.Text
+  value        Decimal?   @db.Decimal(15, 2)
+  lostReason   String?
+  closedAt     DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  company      Company?   @relation(fields: [companyId], references: [id])
+  contact      Contact?   @relation("ContactLeads", fields: [contactId], references: [id])
+  assignedTo   User?      @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  tasks        Task[]     @relation("LeadTasks")
+
+  @@index([status])
+  @@index([assignedToId])
+  @@map("leads")
+}
+
+model Task {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?      @db.Text
+  status       TaskStatus   @default(TODO)
+  priority     TaskPriority @default(MEDIUM)
+  assignedToId String?
+  dueDate      DateTime?
+  licitationId String?
+  leadId       String?
+  tags         String[]
+  completedAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  assignedTo   User?        @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  licitation   Licitation?  @relation("LicitationTasks", fields: [licitationId], references: [id])
+  lead         Lead?        @relation("LeadTasks", fields: [leadId], references: [id])
+
+  @@index([status])
+  @@index([priority])
+  @@index([assignedToId])
+  @@map("tasks")
+}
+
+model Activity {
+  id           String       @id @default(cuid())
+  type         ActivityType
+  description  String
+  userId       String?
+  entityId     String
+  entityType   String
+  metadata     Json?
+  licitationId String?
+  contractId   String?
+  createdAt    DateTime     @default(now())
+
+  // Relations
+  user         User?        @relation(fields: [userId], references: [id])
+  licitation   Licitation?  @relation("LicitationActivities", fields: [licitationId], references: [id])
+  contract     Contract?    @relation("ContractActivities", fields: [contractId], references: [id])
+
+  @@index([entityId, entityType])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activities")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  oldValue   Json?
+  newValue   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model CrawlerJob {
+  id           String        @id @default(cuid())
+  source       CrawlerSource
+  status       CrawlerStatus @default(PENDING)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  itemsFound   Int           @default(0)
+  itemsCreated Int           @default(0)
+  errors       Json?
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+
+  @@index([source])
+  @@index([status])
+  @@map("crawler_jobs")
+}
