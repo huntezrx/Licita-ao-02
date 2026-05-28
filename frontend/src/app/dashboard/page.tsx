@@ -1,170 +1,108 @@
 'use client';
 
-import Link from 'next/link';
-import { FileSignature, DollarSign, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { useDemoStore } from '@/store/demoStore';
+import { TrendingUp, TrendingDown, FileText, DollarSign, CheckCircle } from 'lucide-react';
 
-const mockEmpenhos = [
-  { id: '2024NE001', item: 'Material de Escritório', und: 'UN', marca: 'Staples', qtd: 100, valorVenda: 25.00, qtdEntregue: 100, valorCusto: 18.00, status: 'PAGO', nf: '001234', lucro: 700 },
-  { id: '2024NE002', item: 'Equipamento de TI - Notebook', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 4500.00, qtdEntregue: 3, valorCusto: 3800.00, status: 'PENDENTE', nf: '', lucro: 3500 },
-  { id: '2024NE003', item: 'Cadeiras Ergonômicas', und: 'UN', marca: 'Herman Miller', qtd: 20, valorVenda: 850.00, qtdEntregue: 20, valorCusto: 920.00, status: 'PENDENTE', nf: '001235', lucro: -1400 },
-  { id: '2024NE004', item: 'Papel A4 Resma 500fls', und: 'PCT', marca: 'Chamex', qtd: 200, valorVenda: 28.00, qtdEntregue: 200, valorCusto: 21.00, status: 'PAGO', nf: '001236', lucro: 1400 },
-  { id: '2024NE005', item: 'Canetas BIC Azul', und: 'CX', marca: 'BIC', qtd: 50, valorVenda: 35.00, qtdEntregue: 0, valorCusto: 28.00, status: 'CANCELADO', nf: '', lucro: 0 },
-];
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function fmt(v: number) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 export default function DashboardPage() {
-  const totalEmpenhos = mockEmpenhos.length;
-  const receitaTotal = mockEmpenhos.reduce((sum, e) => sum + e.qtd * e.valorVenda, 0);
-  const custoTotal = mockEmpenhos.reduce((sum, e) => sum + e.qtd * e.valorCusto, 0);
-  const lucroTotal = receitaTotal - custoTotal;
-  const empenhosPendentes = mockEmpenhos.filter((e) => e.status === 'PENDENTE').length;
+  const { empenhos, licitacoes } = useDemoStore();
 
-  const pagos = mockEmpenhos.filter((e) => e.status === 'PAGO');
-  const pendentes = mockEmpenhos.filter((e) => e.status === 'PENDENTE');
-  const cancelados = mockEmpenhos.filter((e) => e.status === 'CANCELADO');
+  const totalVenda = empenhos.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
+  const totalCusto = empenhos.reduce((s, e) => s + e.qtd * e.valorCusto, 0);
+  const lucroTotal = totalVenda - totalCusto;
+  const pendentes = empenhos.filter(e => e.status === 'PENDENTE').length;
+  const pagos = empenhos.filter(e => e.status === 'PAGO').length;
+  const cancelados = empenhos.filter(e => e.status === 'CANCELADO').length;
+  const licitacoesAbertas = licitacoes.filter(l => l.status === 'ABERTA' || l.status === 'EM_ANDAMENTO').length;
+  const totalLicitacoes = licitacoes.reduce((s, l) => s + l.valorEstimado, 0);
 
-  const receitaPagos = pagos.reduce((sum, e) => sum + e.qtd * e.valorVenda, 0);
-  const receitaPendentes = pendentes.reduce((sum, e) => sum + e.qtd * e.valorVenda, 0);
-  const receitaCancelados = cancelados.reduce((sum, e) => sum + e.qtd * e.valorVenda, 0);
-
-  const recentEmpenhos = mockEmpenhos.slice(0, 5);
-
-  const statusBadge = (status: string) => {
-    if (status === 'PAGO') return <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">PAGO</span>;
-    if (status === 'PENDENTE') return <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">PENDENTE</span>;
-    return <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30">CANCELADO</span>;
-  };
+  const recentes = [...empenhos].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-600/10 to-violet-600/10 border border-blue-500/20 rounded-2xl p-5">
-        <h2 className="text-xl font-bold text-white mb-1">Painel de Empenhos</h2>
-        <p className="text-slate-400 text-sm">
-          Visão geral dos empenhos e indicadores financeiros.
-        </p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold gradient-title glow-title">Dashboard</h1>
+        <p className="text-slate-400 mt-1">Visão geral do sistema de licitações</p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-slate-400">Total Empenhos</p>
-            <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <FileSignature className="w-5 h-5 text-blue-400" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Empenhos', value: empenhos.length.toString(), sub: `${pagos} pagos · ${pendentes} pendentes`, icon: FileText, color: 'from-blue-500 to-blue-600', glow: 'shadow-blue-500/20' },
+          { label: 'Receita Total', value: fmt(totalVenda), sub: 'Valor total de venda', icon: DollarSign, color: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/20' },
+          { label: 'Lucro Total', value: fmt(lucroTotal), sub: lucroTotal >= 0 ? 'Resultado positivo' : 'Resultado negativo', icon: lucroTotal >= 0 ? TrendingUp : TrendingDown, color: lucroTotal >= 0 ? 'from-violet-500 to-purple-600' : 'from-red-500 to-red-600', glow: 'shadow-violet-500/20' },
+          { label: 'Licitações Ativas', value: licitacoesAbertas.toString(), sub: `${fmt(totalLicitacoes)} estimados`, icon: CheckCircle, color: 'from-amber-500 to-orange-500', glow: 'shadow-amber-500/20' },
+        ].map((card) => (
+          <div key={card.label} className={`glass-card rounded-2xl p-5 shadow-xl ${card.glow} transition-all duration-300 glass-card-hover`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">{card.label}</p>
+                <p className="text-2xl font-bold text-white mt-1">{card.value}</p>
+                <p className="text-xs text-slate-500 mt-1">{card.sub}</p>
+              </div>
+              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${card.color}`}>
+                <card.icon className="w-5 h-5 text-white" />
+              </div>
             </div>
           </div>
-          <p className="text-3xl font-bold text-white">{totalEmpenhos}</p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-slate-400">Receita Total</p>
-            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-white">{formatCurrency(receitaTotal)}</p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-slate-400">Lucro Total</p>
-            <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-violet-400" />
-            </div>
-          </div>
-          <p className={`text-2xl font-bold ${lucroTotal >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {formatCurrency(lucroTotal)}
-          </p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-slate-400">Empenhos Pendentes</p>
-            <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-orange-400" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-white">{empenhosPendentes}</p>
-        </div>
+        ))}
       </div>
 
-      {/* Status Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-emerald-500/20 rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <CheckCircle className="w-5 h-5 text-emerald-400" />
-            <p className="text-sm font-semibold text-emerald-400">PAGOS</p>
+      {/* Status row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { label: 'Pagos', count: pagos, value: empenhos.filter(e => e.status === 'PAGO').reduce((s, e) => s + e.qtd * e.valorVenda, 0), color: 'text-emerald-400', dot: 'bg-emerald-400' },
+          { label: 'Pendentes', count: pendentes, value: empenhos.filter(e => e.status === 'PENDENTE').reduce((s, e) => s + e.qtd * e.valorVenda, 0), color: 'text-amber-400', dot: 'bg-amber-400' },
+          { label: 'Cancelados', count: cancelados, value: empenhos.filter(e => e.status === 'CANCELADO').reduce((s, e) => s + e.qtd * e.valorVenda, 0), color: 'text-red-400', dot: 'bg-red-400' },
+        ].map((s) => (
+          <div key={s.label} className="glass-card rounded-2xl p-5 flex items-center gap-4">
+            <div className={`w-3 h-3 rounded-full ${s.dot}`} />
+            <div>
+              <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
+              <p className="text-xs text-slate-400">{s.label} · {fmt(s.value)}</p>
+            </div>
           </div>
-          <p className="text-2xl font-bold text-white">{pagos.length} empenhos</p>
-          <p className="text-sm text-slate-400 mt-1">{formatCurrency(receitaPagos)}</p>
-        </div>
-
-        <div className="bg-slate-900 border border-amber-500/20 rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <AlertCircle className="w-5 h-5 text-amber-400" />
-            <p className="text-sm font-semibold text-amber-400">PENDENTES</p>
-          </div>
-          <p className="text-2xl font-bold text-white">{pendentes.length} empenhos</p>
-          <p className="text-sm text-slate-400 mt-1">{formatCurrency(receitaPendentes)}</p>
-        </div>
-
-        <div className="bg-slate-900 border border-red-500/20 rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <XCircle className="w-5 h-5 text-red-400" />
-            <p className="text-sm font-semibold text-red-400">CANCELADOS</p>
-          </div>
-          <p className="text-2xl font-bold text-white">{cancelados.length} empenhos</p>
-          <p className="text-sm text-slate-400 mt-1">{formatCurrency(receitaCancelados)}</p>
-        </div>
+        ))}
       </div>
 
-      {/* Recent Empenhos Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white">Empenhos Recentes</h3>
-          <Link
-            href="/dashboard/empenhos"
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            Ver todos
-          </Link>
+      {/* Recent Empenhos */}
+      <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/[0.06]">
+          <h2 className="text-lg font-semibold gradient-title glow-title">Empenhos Recentes</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-800">
-                <th className="text-left py-2 px-3 text-slate-400 font-medium">Empenho</th>
-                <th className="text-left py-2 px-3 text-slate-400 font-medium">Item</th>
-                <th className="text-right py-2 px-3 text-slate-400 font-medium">Vlr Venda</th>
-                <th className="text-right py-2 px-3 text-slate-400 font-medium">Custo</th>
-                <th className="text-right py-2 px-3 text-slate-400 font-medium">Lucro</th>
-                <th className="text-center py-2 px-3 text-slate-400 font-medium">Status</th>
+              <tr className="border-b border-white/[0.06]">
+                {['Empenho', 'Item', 'Total Venda', 'Total Custo', 'Lucro', 'Status'].map(h => (
+                  <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {recentEmpenhos.map((emp) => {
-                const isCostHigh = emp.valorCusto > emp.valorVenda;
-                const totalVenda = emp.qtd * emp.valorVenda;
-                const totalCusto = emp.qtd * emp.valorCusto;
-                const lucro = totalVenda - totalCusto;
+            <tbody className="divide-y divide-white/[0.04]">
+              {recentes.map((e) => {
+                const tv = e.qtd * e.valorVenda;
+                const tc = e.qtd * e.valorCusto;
+                const lucro = tv - tc;
+                const prejuizo = e.valorCusto > e.valorVenda;
                 return (
-                  <tr
-                    key={emp.id}
-                    className={`border-b border-slate-800/50 ${isCostHigh ? 'bg-red-950/30' : 'hover:bg-slate-800/30'}`}
-                  >
-                    <td className="py-3 px-3 text-white font-mono text-xs">{emp.id}</td>
-                    <td className="py-3 px-3 text-slate-300 max-w-[200px] truncate">{emp.item}</td>
-                    <td className="py-3 px-3 text-right text-slate-300">{formatCurrency(totalVenda)}</td>
-                    <td className="py-3 px-3 text-right text-slate-300">{formatCurrency(totalCusto)}</td>
-                    <td className={`py-3 px-3 text-right font-semibold ${lucro >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {formatCurrency(lucro)}
+                  <tr key={e.id} className={`transition-colors ${prejuizo ? 'bg-red-500/[0.08] hover:bg-red-500/[0.12]' : 'hover:bg-white/[0.03]'}`}>
+                    <td className="px-6 py-3 text-sm font-mono text-blue-300">{e.numero}</td>
+                    <td className="px-6 py-3 text-sm text-slate-200 max-w-[200px] truncate">{e.item}</td>
+                    <td className="px-6 py-3 text-sm text-white font-medium">{fmt(tv)}</td>
+                    <td className="px-6 py-3 text-sm text-slate-300">{fmt(tc)}</td>
+                    <td className={`px-6 py-3 text-sm font-semibold ${lucro >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmt(lucro)}</td>
+                    <td className="px-6 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        e.status === 'PAGO' ? 'bg-emerald-500/10 text-emerald-400' :
+                        e.status === 'PENDENTE' ? 'bg-amber-500/10 text-amber-400' :
+                        'bg-red-500/10 text-red-400'
+                      }`}>{e.status}</span>
                     </td>
-                    <td className="py-3 px-3 text-center">{statusBadge(emp.status)}</td>
                   </tr>
                 );
               })}
