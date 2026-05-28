@@ -5,10 +5,10 @@ import { motion } from 'framer-motion';
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface Column<T> {
+export interface Column<T = Record<string, unknown>> {
   key: string;
   title: string;
-  render?: (value: T[keyof T], row: T) => ReactNode;
+  render?: (value: unknown, row: T) => ReactNode;
   sortable?: boolean;
   className?: string;
 }
@@ -29,7 +29,7 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   columns,
   data,
   keyField,
