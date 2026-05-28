@@ -1,18 +1,10 @@
 {
   "experimentalServices": {
     "frontend": {
-      "root": "frontend",
-      "framework": "nextjs",
-      "buildCommand": "npm run build",
-      "devCommand": "npm run dev",
-      "installCommand": "npm install"
+      "root": "frontend"
     },
     "backend": {
-      "root": "backend",
-      "framework": "nestjs",
-      "buildCommand": "npm run build",
-      "devCommand": "npm run start:dev",
-      "installCommand": "npm install"
+      "root": "backend"
     }
   }
 }
