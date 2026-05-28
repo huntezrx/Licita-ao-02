@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Upload } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { FileUpload } from '@/components/common/FileUpload';
 import { Document } from '@/types/document.types';
 import { documentsService } from '@/services/documents.service';

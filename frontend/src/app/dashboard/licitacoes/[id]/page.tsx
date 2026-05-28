@@ -8,7 +8,7 @@ import {
   Edit2, Trash2, ExternalLink, Clock, Users, CheckSquare,
   Package, Tag,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { licitationsService } from '@/services/licitations.service';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';

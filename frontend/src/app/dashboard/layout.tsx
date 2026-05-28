@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth.service';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
+import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { CommandPalette } from '@/components/layout/CommandPalette';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
@@ -46,6 +47,7 @@ export default function DashboardLayout({
         <Header />
         <main className="flex-1 overflow-y-auto">
           <div className="p-6">
+            <Breadcrumb />
             {children}
           </div>
         </main>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import { Upload } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { documentsService } from '@/services/documents.service';
 import { DocumentGrid } from '@/components/documents/DocumentGrid';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';

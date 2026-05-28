@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { LicitationsTable } from '@/components/licitations/LicitationsTable';
 import { LicitationForm } from '@/components/licitations/LicitationForm';
 import { licitationsService } from '@/services/licitations.service';

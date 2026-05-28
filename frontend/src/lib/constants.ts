@@ -60,8 +60,18 @@ export const TASK_STATUS_LABELS: Record<string, string> = {
   TODO: 'A Fazer',
   IN_PROGRESS: 'Em Andamento',
   IN_REVIEW: 'Em Revisão',
+  REVIEW: 'Em Revisão',
   DONE: 'Concluída',
   CANCELLED: 'Cancelada',
+};
+
+export const TASK_STATUS_COLORS: Record<string, string> = {
+  TODO: 'bg-slate-500/20 text-slate-300',
+  IN_PROGRESS: 'bg-blue-500/20 text-blue-300',
+  IN_REVIEW: 'bg-yellow-500/20 text-yellow-300',
+  REVIEW: 'bg-yellow-500/20 text-yellow-300',
+  DONE: 'bg-emerald-500/20 text-emerald-300',
+  CANCELLED: 'bg-red-500/20 text-red-300',
 };
 
 export const TASK_PRIORITY_LABELS: Record<string, string> = {

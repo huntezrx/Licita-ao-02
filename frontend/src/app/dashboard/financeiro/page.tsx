@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   DollarSign, TrendingUp, TrendingDown, BarChart2, Plus,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { financialService } from '@/services/financial.service';
 import { CashFlowChart } from '@/components/financial/CashFlowChart';
