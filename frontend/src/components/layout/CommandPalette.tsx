@@ -4,29 +4,19 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, LayoutDashboard, FileText, Newspaper, FileSignature,
-  Send, Building2, DollarSign, FolderOpen, Bot, CheckSquare,
-  BarChart2, Settings, Shield, User, Zap,
+  Search, LayoutDashboard, FileText, FileSignature,
+  DollarSign, BarChart2, Settings,
 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
 
 const commands = [
-  { id: 'dashboard', label: 'Dashboard', href: '/', icon: LayoutDashboard, category: 'Navegação' },
-  { id: 'licitations', label: 'Licitações', href: '/licitacoes', icon: FileText, category: 'Navegação' },
-  { id: 'notices', label: 'Editais', href: '/editais', icon: Newspaper, category: 'Navegação' },
-  { id: 'contracts', label: 'Contratos', href: '/contratos', icon: FileSignature, category: 'Navegação' },
-  { id: 'proposals', label: 'Propostas', href: '/propostas', icon: Send, category: 'Navegação' },
-  { id: 'crm', label: 'CRM', href: '/crm', icon: Building2, category: 'CRM' },
-  { id: 'pipeline', label: 'Pipeline', href: '/crm/pipeline', icon: Zap, category: 'CRM' },
-  { id: 'financial', label: 'Financeiro', href: '/financeiro', icon: DollarSign, category: 'Gestão' },
-  { id: 'documents', label: 'Documentos', href: '/documentos', icon: FolderOpen, category: 'Gestão' },
-  { id: 'tasks', label: 'Tarefas', href: '/tarefas', icon: CheckSquare, category: 'Gestão' },
-  { id: 'ai', label: 'Assistente IA', href: '/ia', icon: Bot, category: 'Inteligência' },
-  { id: 'reports', label: 'Relatórios', href: '/relatorios', icon: BarChart2, category: 'Inteligência' },
-  { id: 'profile', label: 'Meu Perfil', href: '/perfil', icon: User, category: 'Conta' },
-  { id: 'settings', label: 'Configurações', href: '/configuracoes', icon: Settings, category: 'Conta' },
-  { id: 'admin', label: 'Administração', href: '/admin', icon: Shield, category: 'Conta' },
+  { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, category: 'Navegação' },
+  { id: 'empenhos', label: 'Empenhos', href: '/dashboard/empenhos', icon: FileSignature, category: 'Navegação' },
+  { id: 'licitations', label: 'Licitações', href: '/dashboard/licitacoes', icon: FileText, category: 'Navegação' },
+  { id: 'financial', label: 'Financeiro', href: '/dashboard/financeiro', icon: DollarSign, category: 'Gestão' },
+  { id: 'reports', label: 'Relatórios', href: '/dashboard/relatorios', icon: BarChart2, category: 'Gestão' },
+  { id: 'settings', label: 'Configurações', href: '/dashboard/configuracoes', icon: Settings, category: 'Conta' },
 ];
 
 export function CommandPalette() {

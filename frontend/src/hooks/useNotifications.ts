@@ -1,91 +1,38 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationsService } from '@/services/notifications.service';
+import { useCallback } from 'react';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useAuthStore } from '@/store/authStore';
-import { getSocket } from '@/lib/socket';
-import { Notification } from '@/types/notification.types';
-import { toast } from 'sonner';
 
+// Demo mode: no backend calls, no socket — just return local store state
 export function useNotifications() {
-  const { isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const {
     notifications,
     unreadCount,
-    setNotifications,
-    addNotification,
     markAsRead: markAsReadStore,
     markAllAsRead: markAllAsReadStore,
-    setUnreadCount,
   } = useNotificationStore();
 
-  const queryClient = useQueryClient();
+  const isDemo = user?.id === 'demo-001';
 
-  // Fetch notifications
-  const { refetch } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: async () => {
-      const data = await notificationsService.findAll({ limit: 50 });
-      setNotifications(data.data);
-      return data;
-    },
-    enabled: isAuthenticated,
-    staleTime: 30000,
-  });
+  const markAsRead = useCallback((id: string) => {
+    markAsReadStore(id);
+  }, [markAsReadStore]);
 
-  // Fetch unread count
-  useQuery({
-    queryKey: ['notifications', 'unread-count'],
-    queryFn: async () => {
-      const data = await notificationsService.getUnreadCount();
-      setUnreadCount(data.count);
-      return data;
-    },
-    enabled: isAuthenticated,
-    refetchInterval: 60000,
-  });
+  const markAllAsRead = useCallback(() => {
+    markAllAsReadStore();
+  }, [markAllAsReadStore]);
 
-  // Socket.io for real-time notifications
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const socket = getSocket();
-
-    socket.on('notification', (notification: Notification) => {
-      addNotification(notification);
-      toast(notification.title, {
-        description: notification.message,
-      });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    });
-
-    return () => {
-      socket.off('notification');
-    };
-  }, [isAuthenticated, addNotification, queryClient]);
-
-  const markAsReadMutation = useMutation({
-    mutationFn: notificationsService.markAsRead,
-    onSuccess: (_, id) => {
-      markAsReadStore(id);
-    },
-  });
-
-  const markAllAsReadMutation = useMutation({
-    mutationFn: notificationsService.markAllAsRead,
-    onSuccess: () => {
-      markAllAsReadStore();
-      refetch();
-    },
-  });
+  const refetch = useCallback(() => {
+    // no-op in demo mode
+  }, []);
 
   return {
-    notifications,
-    unreadCount,
-    markAsRead: markAsReadMutation.mutate,
-    markAllAsRead: markAllAsReadMutation.mutate,
+    notifications: isDemo ? [] : notifications,
+    unreadCount: isDemo ? 0 : unreadCount,
+    markAsRead,
+    markAllAsRead,
     refetch,
   };
 }
