@@ -40,3 +40,21 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
     </div>
   );
 }
+
+export function SkeletonLoader({
+  count = 1,
+  height = 'h-12',
+  className = '',
+}: {
+  count?: number;
+  height?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-3 ${className}`}>
+      {[...Array(count)].map((_, i) => (
+        <Skeleton key={i} className={`w-full ${height}`} />
+      ))}
+    </div>
+  );
+}
