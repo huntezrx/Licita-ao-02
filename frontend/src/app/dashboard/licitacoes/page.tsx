@@ -18,12 +18,12 @@ const emptyForm: Omit<Licitacao, 'id' | 'createdAt'> = {
   edital: '', responsavel: '', observacao: '',
 };
 
-const statusConfig: Record<LicitacaoStatus, { label: string; cls: string }> = {
-  ABERTA: { label: 'Aberta', cls: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
-  EM_ANDAMENTO: { label: 'Em Andamento', cls: 'bg-violet-500/10 text-violet-400 border border-violet-500/20' },
-  CONCLUIDA: { label: 'Concluída', cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-  CANCELADA: { label: 'Cancelada', cls: 'bg-red-500/10 text-red-400 border border-red-500/20' },
-  SUSPENSA: { label: 'Suspensa', cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20' },
+const statusConfig: Record<LicitacaoStatus, { label: string; style: React.CSSProperties }> = {
+  ABERTA: { label: 'Aberta', style: { background: 'rgba(6,182,212,0.1)', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.2)' } },
+  EM_ANDAMENTO: { label: 'Em Andamento', style: { background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)' } },
+  CONCLUIDA: { label: 'Concluída', style: { background: 'rgba(0,255,136,0.1)', color: '#00ff88', border: '1px solid rgba(0,255,136,0.2)' } },
+  CANCELADA: { label: 'Cancelada', style: { background: 'rgba(255,56,96,0.1)', color: '#ff3860', border: '1px solid rgba(255,56,96,0.2)' } },
+  SUSPENSA: { label: 'Suspensa', style: { background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' } },
 };
 
 export default function LicitacoesPage() {
@@ -58,10 +58,10 @@ export default function LicitacoesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold gradient-title glow-title">Licitações</h1>
-          <p className="text-slate-400 mt-1">Gerencie processos licitatórios</p>
+          <h1 className="text-5xl font-black gradient-title glow-title tracking-tight leading-none">Licitações</h1>
+          <p className="text-slate-500 mt-2 text-sm">Gerencie processos licitatórios</p>
         </div>
-        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white font-medium text-sm transition-all shadow-lg shadow-violet-500/25">
+        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-xl btn-neon text-white font-medium text-sm">
           <Plus className="w-4 h-4" /> Nova Licitação
         </button>
       </div>
@@ -70,13 +70,13 @@ export default function LicitacoesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Total', value: licitacoes.length, color: 'text-white' },
-          { label: 'Abertas', value: counts['ABERTA'] || 0, color: 'text-blue-400' },
-          { label: 'Em Andamento', value: counts['EM_ANDAMENTO'] || 0, color: 'text-violet-400' },
-          { label: 'Concluídas', value: counts['CONCLUIDA'] || 0, color: 'text-emerald-400' },
+          { label: 'Abertas', value: counts['ABERTA'] || 0, style: { color: '#67e8f9' } },
+          { label: 'Em Andamento', value: counts['EM_ANDAMENTO'] || 0, style: { color: '#a78bfa' } },
+          { label: 'Concluídas', value: counts['CONCLUIDA'] || 0, style: { color: '#00ff88' } },
         ].map(s => (
-          <div key={s.label} className="glass-card rounded-xl p-4">
+          <div key={s.label} className="neo-card rounded-xl p-4">
             <p className="text-xs text-slate-400">{s.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
+            <p className={`text-2xl font-bold mt-1 ${'color' in s ? s.color : ''}`} style={'style' in s ? s.style : {}}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -88,7 +88,7 @@ export default function LicitacoesPage() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar licitação..." className="pl-9 pr-4 py-2 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all w-64" />
         </div>
         {(['TODAS', 'ABERTA', 'EM_ANDAMENTO', 'CONCLUIDA', 'CANCELADA', 'SUSPENSA'] as const).map(f => (
-          <button key={f} onClick={() => setFilterStatus(f)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${filterStatus === f ? 'bg-gradient-to-r from-violet-600 to-blue-600 text-white' : 'glass-card text-slate-400 hover:text-white'}`}>
+          <button key={f} onClick={() => setFilterStatus(f)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${filterStatus === f ? 'btn-neon text-white' : 'neo-card text-slate-400 hover:text-white'}`}>
             {f === 'TODAS' ? 'Todas' : statusConfig[f as LicitacaoStatus]?.label || f}
             <span className={`px-1.5 py-0.5 rounded-full ${filterStatus === f ? 'bg-white/20' : 'bg-white/10'}`}>{counts[f] || 0}</span>
           </button>
@@ -98,10 +98,10 @@ export default function LicitacoesPage() {
       {/* Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {filtered.map(l => (
-          <div key={l.id} className="glass-card glass-card-hover rounded-2xl p-5 group transition-all">
+          <div key={l.id} className="neo-card rounded-2xl p-5 group transition-all">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <span className="text-xs font-mono text-blue-300">{l.numero}</span>
+                <span className="text-xs font-mono" style={{ color: '#a78bfa' }}>{l.numero}</span>
                 <h3 className="text-sm font-semibold text-white mt-0.5 leading-tight">{l.objeto}</h3>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -112,7 +112,7 @@ export default function LicitacoesPage() {
             <p className="text-xs text-slate-400 mb-3">{l.orgao}</p>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig[l.status].cls}`}>{statusConfig[l.status].label}</span>
+                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium" style={statusConfig[l.status].style}>{statusConfig[l.status].label}</span>
                 <span className="text-xs text-slate-500">{modalidadeLabels[l.modalidade]}</span>
               </div>
               <div className="text-right">
@@ -120,7 +120,7 @@ export default function LicitacoesPage() {
                 <p className="text-xs text-slate-500">{l.dataAbertura ? new Date(l.dataAbertura + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</p>
               </div>
             </div>
-            {l.observacao && <p className="text-xs text-slate-500 mt-2 border-t border-white/[0.05] pt-2">{l.observacao}</p>}
+            {l.observacao && <p className="text-xs text-slate-500 mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>{l.observacao}</p>}
           </div>
         ))}
       </div>
@@ -128,9 +128,9 @@ export default function LicitacoesPage() {
       {/* Modal */}
       {modal.open && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-card rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-white/[0.08]">
-              <h2 className="text-xl font-bold gradient-title">{modal.editing ? 'Editar Licitação' : 'Nova Licitação'}</h2>
+          <div className="neo-card rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <h2 className="text-xl font-black gradient-title">{modal.editing ? 'Editar Licitação' : 'Nova Licitação'}</h2>
               <button onClick={() => setModal({ open: false, editing: null })} className="p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 grid grid-cols-2 gap-4">
@@ -173,9 +173,9 @@ export default function LicitacoesPage() {
                   className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all resize-none" />
               </div>
             </div>
-            <div className="flex gap-3 p-6 border-t border-white/[0.08]">
-              <button onClick={() => setModal({ open: false, editing: null })} className="flex-1 py-2.5 rounded-xl glass-card text-slate-300 hover:text-white text-sm font-medium">Cancelar</button>
-              <button onClick={handleSave} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white font-medium text-sm shadow-lg shadow-violet-500/25">
+            <div className="flex gap-3 p-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <button onClick={() => setModal({ open: false, editing: null })} className="flex-1 py-2.5 rounded-xl neo-card text-slate-300 hover:text-white text-sm font-medium">Cancelar</button>
+              <button onClick={handleSave} className="flex-1 py-2.5 rounded-xl btn-neon text-white font-medium text-sm">
                 {modal.editing ? 'Salvar' : 'Criar'}
               </button>
             </div>

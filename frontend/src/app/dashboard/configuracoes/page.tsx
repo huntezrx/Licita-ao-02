@@ -28,14 +28,14 @@ export default function ConfiguracoesPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-3xl font-bold gradient-title glow-title">Configurações</h1>
-        <p className="text-slate-400 mt-1">Gerencie suas preferências e dados da conta</p>
+        <h1 className="text-5xl font-black gradient-title glow-title tracking-tight leading-none">Configurações</h1>
+        <p className="text-slate-500 mt-2 text-sm">Gerencie suas preferências e dados da conta</p>
       </div>
 
       {/* Profile */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
-          <div className="p-2 rounded-xl bg-blue-500/10"><User className="w-4 h-4 text-blue-400" /></div>
+      <div className="neo-card rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="p-2 rounded-xl" style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.15)' }}><User className="w-4 h-4 text-cyan-400" /></div>
           <h2 className="font-semibold text-white">Perfil</h2>
         </div>
         <div className="p-6 grid grid-cols-2 gap-4">
@@ -55,9 +55,9 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Notifications */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
-          <div className="p-2 rounded-xl bg-violet-500/10"><Bell className="w-4 h-4 text-violet-400" /></div>
+      <div className="neo-card rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="p-2 rounded-xl" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)' }}><Bell className="w-4 h-4 text-violet-400" /></div>
           <h2 className="font-semibold text-white">Notificações</h2>
         </div>
         <div className="p-6 space-y-4">
@@ -74,7 +74,8 @@ export default function ConfiguracoesPage() {
               </div>
               <button
                 onClick={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
-                className={`relative w-11 h-6 rounded-full transition-all ${notifs[key] ? 'bg-gradient-to-r from-violet-600 to-blue-600' : 'bg-white/10'}`}
+                className="relative w-11 h-6 rounded-full transition-all"
+                style={notifs[key] ? { background: 'linear-gradient(135deg, #7c3aed, #2563eb)', boxShadow: '0 0 12px rgba(124,58,237,0.4)' } : { background: 'rgba(255,255,255,0.1)' }}
               >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${notifs[key] ? 'left-5' : 'left-0.5'}`} />
               </button>
@@ -84,20 +85,20 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Security */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
-          <div className="p-2 rounded-xl bg-emerald-500/10"><Shield className="w-4 h-4 text-emerald-400" /></div>
+      <div className="neo-card rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="p-2 rounded-xl" style={{ background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.15)' }}><Shield className="w-4 h-4" style={{ color: '#00ff88' }} /></div>
           <h2 className="font-semibold text-white">Segurança</h2>
         </div>
         <div className="p-6 space-y-4">
-          <div className="glass-card rounded-xl p-4 flex items-center justify-between">
+          <div className="neo-card rounded-xl p-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-white">Alterar Senha</p>
               <p className="text-xs text-slate-400">Última alteração: nunca</p>
             </div>
             <button onClick={() => toast.info('Disponível na versão com backend')} className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white text-xs font-medium transition-all">Alterar</button>
           </div>
-          <div className="glass-card rounded-xl p-4 flex items-center justify-between">
+          <div className="neo-card rounded-xl p-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-white">Autenticação em 2 Fatores</p>
               <p className="text-xs text-slate-400">Adicione uma camada extra de segurança</p>
@@ -108,13 +109,13 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Company */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06]">
-          <div className="p-2 rounded-xl bg-amber-500/10"><Building2 className="w-4 h-4 text-amber-400" /></div>
+      <div className="neo-card rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="p-2 rounded-xl" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)' }}><Building2 className="w-4 h-4 text-amber-400" /></div>
           <h2 className="font-semibold text-white">Dados do Sistema</h2>
         </div>
         <div className="p-6">
-          <div className="glass-card rounded-xl p-4 space-y-2">
+          <div className="neo-card rounded-xl p-4 space-y-2">
             {[['Versão', '1.0.0 Demo'], ['Modo', 'Demonstração (sem backend)'], ['Usuário', user?.role || 'SUPER_ADMIN'], ['Armazenamento', 'LocalStorage (navegador)']].map(([k, v]) => (
               <div key={k} className="flex justify-between text-sm">
                 <span className="text-slate-400">{k}</span>
@@ -125,7 +126,7 @@ export default function ConfiguracoesPage() {
         </div>
       </div>
 
-      <button onClick={handleSave} className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all shadow-lg ${saved ? 'bg-emerald-600 text-white shadow-emerald-500/25' : 'bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white shadow-violet-500/25'}`}>
+      <button onClick={handleSave} className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm transition-all shadow-lg ${saved ? 'text-white' : 'btn-neon text-white'}`} style={saved ? { background: 'rgba(0,255,136,0.15)', border: '1px solid rgba(0,255,136,0.3)', color: '#00ff88' } : {}}>
         {saved && <Check className="w-4 h-4" />}
         {saved ? 'Salvo!' : 'Salvar Configurações'}
       </button>

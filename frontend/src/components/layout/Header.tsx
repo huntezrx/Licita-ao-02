@@ -48,16 +48,17 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 flex-shrink-0">
+    <header className="h-14 flex items-center justify-between px-6 flex-shrink-0 relative z-10" style={{ background: 'rgba(6,8,16,0.8)', borderBottom: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)' }}>
       <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold text-white">{getPageTitle()}</h1>
+        <h1 className="text-base font-bold text-slate-200 tracking-tight">{getPageTitle()}</h1>
       </div>
 
       <div className="flex items-center gap-3">
         {/* Search */}
         <button
           onClick={() => setCommandPaletteOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-400 hover:text-slate-300 hover:border-slate-600 transition-colors group"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-300 transition-colors group"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <Search className="w-4 h-4" />
           <span className="hidden sm:block">Pesquisar...</span>
@@ -108,8 +109,8 @@ export function Header() {
                 className="fixed inset-0 z-10"
                 onClick={() => setUserMenuOpen(false)}
               />
-              <div className="absolute right-0 top-full mt-2 w-56 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-20 overflow-hidden">
-                <div className="p-3 border-b border-slate-700">
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-xl shadow-2xl z-20 overflow-hidden" style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.09)' }}>
+                <div className="p-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                   <p className="text-sm font-semibold text-white">{user?.name}</p>
                   <p className="text-xs text-slate-400">{user?.email}</p>
                 </div>
@@ -117,14 +118,14 @@ export function Header() {
                   <Link
                     href="/perfil"
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/[0.06] hover:text-white transition-colors"
                   >
                     <User className="w-4 h-4" /> Meu Perfil
                   </Link>
                   <Link
                     href="/configuracoes"
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/[0.06] hover:text-white transition-colors"
                   >
                     <Settings className="w-4 h-4" /> Configurações
                   </Link>

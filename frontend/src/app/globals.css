@@ -32,7 +32,8 @@
     @apply border-border;
   }
   body {
-    @apply bg-slate-950 text-foreground;
+    @apply text-foreground;
+    background: #03040a;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -100,23 +101,63 @@
 }
 
 @layer utilities {
-  .glow-title {
-    filter: drop-shadow(0 0 24px rgba(139, 92, 246, 0.55)) drop-shadow(0 0 48px rgba(59, 130, 246, 0.35));
-  }
+  /* Gradient title — violet to cyan */
   .gradient-title {
-    background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 45%, #93c5fd 100%);
+    background: linear-gradient(135deg, #e2e8f0 0%, #a78bfa 40%, #67e8f9 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  .glass-card {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* Neon glow for title text */
+  .glow-title {
+    filter: drop-shadow(0 0 18px rgba(167, 139, 250, 0.65)) drop-shadow(0 0 36px rgba(103, 232, 249, 0.35));
   }
+
+  /* Classic glass card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  /* Neo card — stronger identity, neon border on hover */
+  .neo-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .neo-card:hover {
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.12), 0 8px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  /* Glass card hover (legacy compat) */
   .glass-card-hover:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+
+  /* Neon positive value */
+  .neon-positive {
+    color: #00ff88;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.55), 0 0 20px rgba(0, 255, 136, 0.25);
+  }
+
+  /* Neon negative value */
+  .neon-negative {
+    color: #ff3860;
+    text-shadow: 0 0 8px rgba(255, 56, 96, 0.55), 0 0 20px rgba(255, 56, 96, 0.25);
+  }
+
+  /* Neon button */
+  .btn-neon {
+    background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+    box-shadow: 0 0 18px rgba(124, 58, 237, 0.4), 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+  }
+  .btn-neon:hover {
+    box-shadow: 0 0 28px rgba(124, 58, 237, 0.6), 0 4px 24px rgba(0, 0, 0, 0.5);
+    transform: translateY(-1px);
   }
 }
 

@@ -53,35 +53,37 @@ export function Sidebar() {
 
   return (
     <motion.aside
-      animate={{ width: sidebarCollapsed ? 72 : 260 }}
-      transition={{ duration: 0.2, ease: 'easeInOut' }}
-      className="relative flex flex-col h-full bg-slate-900 border-r border-slate-800 overflow-hidden"
+      animate={{ width: sidebarCollapsed ? 68 : 252 }}
+      transition={{ duration: 0.22, ease: 'easeInOut' }}
+      className="relative flex flex-col h-full overflow-hidden flex-shrink-0"
+      style={{ background: '#060810', borderRight: '1px solid rgba(255,255,255,0.05)' }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-slate-800">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex-shrink-0">
-          <FileText className="w-5 h-5 text-white" />
+      <div className="flex items-center gap-3 px-4 py-5">
+        <div className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)', boxShadow: '0 0 20px rgba(124,58,237,0.45), 0 4px 12px rgba(0,0,0,0.4)' }}>
+          <FileSignature className="w-4 h-4 text-white" />
         </div>
         <AnimatePresence>
           {!sidebarCollapsed && (
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
+              exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <p className="text-sm font-bold text-white leading-tight whitespace-nowrap">
-                SistemaLicitação
+              <p className="text-sm font-black text-white leading-tight whitespace-nowrap tracking-tight">
+                LicitaNex
               </p>
-              <p className="text-xs text-slate-400 whitespace-nowrap">Gestão Pública</p>
+              <p className="text-[10px] whitespace-nowrap" style={{ color: '#a78bfa' }}>Gestão Pública</p>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+      <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-5">
         {navigation.map((group) => (
           <div key={group.group}>
             <AnimatePresence>
@@ -90,59 +92,54 @@ export function Sidebar() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2"
+                  className="text-[9px] font-bold uppercase tracking-[0.15em] mb-1.5 px-3"
+                  style={{ color: 'rgba(100,116,139,0.7)' }}
                 >
                   {group.group}
                 </motion.p>
               )}
             </AnimatePresence>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {group.items.map((item) => {
-                if (item.adminOnly && user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
-                  return null;
-                }
-
                 const active = isActive(item.href);
                 const Icon = item.icon;
 
                 return (
                   <Link key={item.href} href={item.href}>
-                    <motion.div
-                      whileHover={{ x: 2 }}
+                    <div
                       className={cn(
-                        'flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors cursor-pointer group',
+                        'relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group',
                         active
-                          ? 'bg-blue-500/10 text-blue-400'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800',
+                          ? 'bg-violet-500/[0.1]'
+                          : 'hover:bg-white/[0.04]',
                       )}
                     >
+                      {/* Left neon accent bar when active */}
+                      {active && (
+                        <motion.div
+                          layoutId="activeBar"
+                          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                          style={{ background: '#a78bfa', boxShadow: '0 0 8px rgba(167,139,250,0.9), 0 0 16px rgba(167,139,250,0.5)' }}
+                          transition={{ type: 'spring', bounce: 0.25, duration: 0.35 }}
+                        />
+                      )}
                       <Icon
-                        className={cn(
-                          'w-5 h-5 flex-shrink-0',
-                          active ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-200',
-                        )}
+                        className={cn('w-[18px] h-[18px] flex-shrink-0 transition-colors', active ? 'text-violet-300' : 'text-slate-500 group-hover:text-slate-300')}
                       />
                       <AnimatePresence>
                         {!sidebarCollapsed && (
                           <motion.span
-                            initial={{ opacity: 0, x: -10 }}
+                            initial={{ opacity: 0, x: -6 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            transition={{ duration: 0.15 }}
-                            className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                            exit={{ opacity: 0, x: -6 }}
+                            transition={{ duration: 0.13 }}
+                            className={cn('text-sm font-medium whitespace-nowrap overflow-hidden transition-colors', active ? 'text-violet-200' : 'text-slate-400 group-hover:text-slate-200')}
                           >
                             {item.name}
                           </motion.span>
                         )}
                       </AnimatePresence>
-                      {active && (
-                        <motion.div
-                          layoutId="activeIndicator"
-                          className="absolute right-0 w-1 h-6 bg-blue-400 rounded-l-full"
-                          transition={{ type: 'spring', bounce: 0.2 }}
-                        />
-                      )}
-                    </motion.div>
+                    </div>
                   </Link>
                 );
               })}
@@ -152,9 +149,10 @@ export function Sidebar() {
       </nav>
 
       {/* User Info */}
-      <div className="border-t border-slate-800 p-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center flex-shrink-0">
+      <div className="px-2 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/[0.04] transition-colors">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)', boxShadow: '0 0 12px rgba(124,58,237,0.4)' }}>
             <span className="text-xs font-bold text-white">
               {user?.name?.charAt(0) || 'U'}
             </span>
@@ -167,8 +165,8 @@ export function Sidebar() {
                 exit={{ opacity: 0 }}
                 className="flex-1 overflow-hidden"
               >
-                <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+                <p className="text-xs font-semibold text-slate-200 truncate">{user?.name}</p>
+                <p className="text-[10px] truncate" style={{ color: 'rgba(100,116,139,0.8)' }}>{user?.email}</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -178,7 +176,8 @@ export function Sidebar() {
       {/* Toggle Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center hover:bg-slate-700 transition-colors z-10"
+        className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center z-10 transition-all"
+        style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 0 8px rgba(0,0,0,0.5)' }}
       >
         {sidebarCollapsed ? (
           <ChevronRight className="w-3 h-3 text-slate-400" />
