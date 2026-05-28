@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { Empenho, Licitacao } from '@/store/demoStore';
+import type { Empenho, EmpenhoItem, Licitacao } from '@/store/demoStore';
 
 // ─── Mappers: camelCase ↔ snake_case ────────────────────────────
 
@@ -11,9 +11,6 @@ function empenhoToRow(e: Empenho) {
     orgao: e.orgao,
     itens: e.itens,
     status: e.status,
-    nf: e.nf,
-    valor_nf: e.valorNf,
-    data_entrega_nf: e.dataEntregaNf || null,
     responsavel_compra: e.responsavelCompra,
     responsavel_entrega: e.responsavelEntrega,
     observacao: e.observacao,
@@ -28,11 +25,11 @@ function rowToEmpenho(r: any): Empenho {
     numero: r.numero,
     fornecedor: r.fornecedor || '',
     orgao: r.orgao || '',
-    itens: r.itens || [],
+    itens: (r.itens || []).map((it: EmpenhoItem) => ({
+      nf: '', valorNf: 0, dataEntregaNf: '',
+      ...it,
+    })),
     status: r.status,
-    nf: r.nf || '',
-    valorNf: Number(r.valor_nf),
-    dataEntregaNf: r.data_entrega_nf || '',
     responsavelCompra: r.responsavel_compra || '',
     responsavelEntrega: r.responsavel_entrega || '',
     observacao: r.observacao || '',

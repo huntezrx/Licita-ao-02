@@ -13,11 +13,16 @@ function totals(e: Empenho) {
   return { tv, tc, lucro: tv - tc };
 }
 
-const emptyItem = (): EmpenhoItem => ({ id: Date.now().toString() + Math.random(), descricao: '', und: 'UN', marca: '', qtd: 0, valorVenda: 0, qtdEntregue: 0, valorCusto: 0 });
+const emptyItem = (): EmpenhoItem => ({
+  id: Date.now().toString() + Math.random(),
+  descricao: '', und: 'UN', marca: '',
+  qtd: 0, valorVenda: 0, qtdEntregue: 0, valorCusto: 0,
+  nf: '', valorNf: 0, dataEntregaNf: '',
+});
 
 const emptyForm: Omit<Empenho, 'id' | 'createdAt'> = {
   numero: '', fornecedor: '', orgao: '', itens: [],
-  status: 'PENDENTE', nf: '', valorNf: 0, dataEntregaNf: '',
+  status: 'PENDENTE',
   responsavelCompra: '', responsavelEntrega: '', observacao: '',
 };
 
@@ -52,7 +57,12 @@ export default function EmpenhosPage() {
     setModal({ open: true, editing: null });
   }
   function openEdit(e: Empenho) {
-    setForm({ numero: e.numero, fornecedor: e.fornecedor, orgao: e.orgao, itens: e.itens.map(i => ({ ...i })), status: e.status, nf: e.nf, valorNf: e.valorNf, dataEntregaNf: e.dataEntregaNf, responsavelCompra: e.responsavelCompra, responsavelEntrega: e.responsavelEntrega, observacao: e.observacao });
+    setForm({
+      numero: e.numero, fornecedor: e.fornecedor, orgao: e.orgao,
+      itens: e.itens.map(i => ({ ...i })),
+      status: e.status,
+      responsavelCompra: e.responsavelCompra, responsavelEntrega: e.responsavelEntrega, observacao: e.observacao,
+    });
     setModal({ open: true, editing: e });
   }
   function handleDelete(id: string, numero: string) {
@@ -70,11 +80,11 @@ export default function EmpenhosPage() {
   function removeItem(idx: number) { setForm(f => ({ ...f, itens: f.itens.filter((_, i) => i !== idx) })); }
 
   function exportCSV() {
-    const headers = ['Nº Empenho', 'Fornecedor', 'Órgão', 'Status', 'NF', 'Resp. Compra', 'Resp. Entrega', 'Item #', 'Descrição', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total Venda', 'Qtd Entregue', 'Vlr Custo', 'Total Custo', 'Lucro', 'Criado em'];
+    const headers = ['Nº Empenho', 'Fornecedor', 'Órgão', 'Status', 'Resp. Compra', 'Resp. Entrega', 'Item #', 'Descrição', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total Venda', 'Qtd Entregue', 'Vlr Custo', 'Total Custo', 'Lucro', 'NF', 'Valor NF', 'Data Entrega NF', 'Criado em'];
     const rows: (string | number)[][] = [];
     filtered.forEach(e => {
       e.itens.forEach((it, idx) => {
-        rows.push([e.numero, e.fornecedor, e.orgao, e.status, e.nf, e.responsavelCompra, e.responsavelEntrega, idx + 1, it.descricao, it.und, it.marca, it.qtd, it.valorVenda, it.qtd * it.valorVenda, it.qtdEntregue, it.valorCusto, it.qtd * it.valorCusto, it.qtd * it.valorVenda - it.qtd * it.valorCusto, e.createdAt]);
+        rows.push([e.numero, e.fornecedor, e.orgao, e.status, e.responsavelCompra, e.responsavelEntrega, idx + 1, it.descricao, it.und, it.marca, it.qtd, it.valorVenda, it.qtd * it.valorVenda, it.qtdEntregue, it.valorCusto, it.qtd * it.valorCusto, it.qtd * it.valorVenda - it.qtd * it.valorCusto, it.nf, it.valorNf, it.dataEntregaNf, e.createdAt]);
       });
     });
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -188,36 +198,41 @@ export default function EmpenhosPage() {
                     <tr key={`${e.id}-exp`}>
                       <td colSpan={9} style={{ padding: 0 }}>
                         <div className="px-10 py-3" style={{ background: '#f9fafb', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-                          <table className="w-full" style={{ fontSize: 12 }}>
-                            <thead>
-                              <tr>
-                                {['#', 'Descrição', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total', 'Qtd Entregue', 'Vlr Custo', 'Lucro'].map(h => (
-                                  <th key={h} className="text-left pb-2 pr-3" style={{ color: '#9ca3af', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {e.itens.map((it, idx) => {
-                                const itv = it.qtd * it.valorVenda;
-                                const itc = it.qtd * it.valorCusto;
-                                const alert = it.valorCusto > it.valorVenda;
-                                return (
-                                  <tr key={it.id} style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-                                    <td className="py-2 pr-3" style={{ color: '#9ca3af' }}>{idx + 1}</td>
-                                    <td className="py-2 pr-3" style={{ color: '#374151', maxWidth: 240 }} title={it.descricao}>{it.descricao}</td>
-                                    <td className="py-2 pr-3" style={{ color: '#6b7280' }}>{it.und}</td>
-                                    <td className="py-2 pr-3" style={{ color: '#6b7280' }}>{it.marca || '—'}</td>
-                                    <td className="py-2 pr-3 tabular-nums">{it.qtd}</td>
-                                    <td className="py-2 pr-3 tabular-nums" style={{ color: alert ? '#dc2626' : '#6b7280' }}>{fmtFull(it.valorVenda)}</td>
-                                    <td className="py-2 pr-3 tabular-nums font-medium" style={{ color: '#111827' }}>{fmt(itv)}</td>
-                                    <td className="py-2 pr-3 tabular-nums" style={{ color: '#6b7280' }}>{it.qtdEntregue}</td>
-                                    <td className="py-2 pr-3 tabular-nums" style={{ color: alert ? '#dc2626' : '#9ca3af' }}>{fmtFull(it.valorCusto)}</td>
-                                    <td className="py-2 tabular-nums font-semibold" style={{ color: (itv - itc) >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(itv - itc)}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                          <div className="overflow-x-auto">
+                            <table className="w-full" style={{ fontSize: 12 }}>
+                              <thead>
+                                <tr>
+                                  {['#', 'Descrição', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total', 'Qtd Entregue', 'Vlr Custo', 'Lucro', 'NF', 'Valor NF', 'Data Entrega'].map(h => (
+                                    <th key={h} className="text-left pb-2 pr-3" style={{ color: '#9ca3af', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {e.itens.map((it, idx) => {
+                                  const itv = it.qtd * it.valorVenda;
+                                  const itc = it.qtd * it.valorCusto;
+                                  const alert = it.valorCusto > it.valorVenda;
+                                  return (
+                                    <tr key={it.id} style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                                      <td className="py-2 pr-3" style={{ color: '#9ca3af' }}>{idx + 1}</td>
+                                      <td className="py-2 pr-3" style={{ color: '#374151', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={it.descricao}>{it.descricao}</td>
+                                      <td className="py-2 pr-3" style={{ color: '#6b7280' }}>{it.und}</td>
+                                      <td className="py-2 pr-3" style={{ color: '#6b7280' }}>{it.marca || '—'}</td>
+                                      <td className="py-2 pr-3 tabular-nums">{it.qtd}</td>
+                                      <td className="py-2 pr-3 tabular-nums" style={{ color: alert ? '#dc2626' : '#6b7280' }}>{fmtFull(it.valorVenda)}</td>
+                                      <td className="py-2 pr-3 tabular-nums font-medium" style={{ color: '#111827' }}>{fmt(itv)}</td>
+                                      <td className="py-2 pr-3 tabular-nums" style={{ color: '#6b7280' }}>{it.qtdEntregue}</td>
+                                      <td className="py-2 pr-3 tabular-nums" style={{ color: alert ? '#dc2626' : '#9ca3af' }}>{fmtFull(it.valorCusto)}</td>
+                                      <td className="py-2 pr-3 tabular-nums font-semibold" style={{ color: (itv - itc) >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(itv - itc)}</td>
+                                      <td className="py-2 pr-3 font-mono" style={{ color: '#2563eb', whiteSpace: 'nowrap' }}>{it.nf || '—'}</td>
+                                      <td className="py-2 pr-3 tabular-nums" style={{ color: '#374151' }}>{it.valorNf ? fmt(it.valorNf) : '—'}</td>
+                                      <td className="py-2" style={{ color: '#6b7280', whiteSpace: 'nowrap' }}>{it.dataEntregaNf || '—'}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -240,7 +255,7 @@ export default function EmpenhosPage() {
       {/* Modal */}
       {modal.open && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+          <div className="w-full max-w-6xl max-h-[92vh] overflow-y-auto rounded-2xl" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
               <h2 className="text-sm font-semibold" style={{ color: '#111827' }}>{modal.editing ? 'Editar Empenho' : 'Novo Empenho'}</h2>
               <button onClick={() => setModal({ open: false, editing: null })} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><X className="w-4 h-4" style={{ color: '#6b7280' }} /></button>
@@ -262,18 +277,6 @@ export default function EmpenhosPage() {
                   <div className="col-span-2">
                     <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Órgão</label>
                     <input value={form.orgao} onChange={e => setForm(f => ({ ...f, orgao: e.target.value }))} className="input-premium" placeholder="Órgão responsável" />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>NF</label>
-                    <input value={form.nf} onChange={e => setForm(f => ({ ...f, nf: e.target.value }))} className="input-premium" />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Valor NF</label>
-                    <input type="number" value={form.valorNf} onChange={e => setForm(f => ({ ...f, valorNf: parseFloat(e.target.value) || 0 }))} className="input-premium" />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Data Entrega NF</label>
-                    <input type="date" value={form.dataEntregaNf} onChange={e => setForm(f => ({ ...f, dataEntregaNf: e.target.value }))} className="input-premium" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Status</label>
@@ -318,9 +321,12 @@ export default function EmpenhosPage() {
                           <th>Und</th>
                           <th>Marca</th>
                           <th>Qtd</th>
-                          <th>Vlr Venda (R$)</th>
+                          <th>Vlr Venda</th>
                           <th>Qtd Entregue</th>
-                          <th>Vlr Custo (R$)</th>
+                          <th>Vlr Custo</th>
+                          <th>NF</th>
+                          <th>Valor NF</th>
+                          <th>Data Entrega NF</th>
                           <th style={{ width: 40 }}></th>
                         </tr>
                       </thead>
@@ -329,14 +335,17 @@ export default function EmpenhosPage() {
                           <tr key={it.id}>
                             <td style={{ color: '#9ca3af', fontSize: 11 }}>{idx + 1}</td>
                             <td style={{ minWidth: 0 }}>
-                              <input value={it.descricao} onChange={e => updateItem(idx, 'descricao', e.target.value)} className="input-premium" style={{ minWidth: 200 }} placeholder="Descrição do item" />
+                              <input value={it.descricao} onChange={e => updateItem(idx, 'descricao', e.target.value)} className="input-premium" style={{ minWidth: 180 }} placeholder="Descrição do item" />
                             </td>
-                            <td><input value={it.und} onChange={e => updateItem(idx, 'und', e.target.value)} className="input-premium" style={{ width: 58 }} /></td>
-                            <td><input value={it.marca} onChange={e => updateItem(idx, 'marca', e.target.value)} className="input-premium" style={{ width: 90 }} /></td>
-                            <td><input type="number" value={it.qtd} onChange={e => updateItem(idx, 'qtd', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 72 }} /></td>
-                            <td><input type="number" step="0.01" value={it.valorVenda} onChange={e => updateItem(idx, 'valorVenda', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 100 }} /></td>
-                            <td><input type="number" value={it.qtdEntregue} onChange={e => updateItem(idx, 'qtdEntregue', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 80 }} /></td>
-                            <td><input type="number" step="0.01" value={it.valorCusto} onChange={e => updateItem(idx, 'valorCusto', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 100 }} /></td>
+                            <td><input value={it.und} onChange={e => updateItem(idx, 'und', e.target.value)} className="input-premium" style={{ width: 56 }} /></td>
+                            <td><input value={it.marca} onChange={e => updateItem(idx, 'marca', e.target.value)} className="input-premium" style={{ width: 80 }} /></td>
+                            <td><input type="number" value={it.qtd} onChange={e => updateItem(idx, 'qtd', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 68 }} /></td>
+                            <td><input type="number" step="0.01" value={it.valorVenda} onChange={e => updateItem(idx, 'valorVenda', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 90 }} /></td>
+                            <td><input type="number" value={it.qtdEntregue} onChange={e => updateItem(idx, 'qtdEntregue', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 76 }} /></td>
+                            <td><input type="number" step="0.01" value={it.valorCusto} onChange={e => updateItem(idx, 'valorCusto', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 90 }} /></td>
+                            <td><input value={it.nf} onChange={e => updateItem(idx, 'nf', e.target.value)} className="input-premium" style={{ width: 100 }} placeholder="NF-000000" /></td>
+                            <td><input type="number" step="0.01" value={it.valorNf} onChange={e => updateItem(idx, 'valorNf', parseFloat(e.target.value) || 0)} className="input-premium" style={{ width: 90 }} /></td>
+                            <td><input type="date" value={it.dataEntregaNf} onChange={e => updateItem(idx, 'dataEntregaNf', e.target.value)} className="input-premium" style={{ width: 130 }} /></td>
                             <td>
                               <button onClick={() => removeItem(idx)} disabled={form.itens.length <= 1} className="p-1.5 rounded-md hover:bg-red-50 transition-colors disabled:opacity-30">
                                 <Trash2 className="w-3.5 h-3.5" style={{ color: '#dc2626' }} />
@@ -345,7 +354,7 @@ export default function EmpenhosPage() {
                           </tr>
                         ))}
                         {form.itens.length === 0 && (
-                          <tr><td colSpan={9} className="py-8 text-center text-[12px]" style={{ color: '#9ca3af' }}>Clique em "Adicionar Item"</td></tr>
+                          <tr><td colSpan={12} className="py-8 text-center text-[12px]" style={{ color: '#9ca3af' }}>Clique em &quot;Adicionar Item&quot;</td></tr>
                         )}
                       </tbody>
                       {form.itens.length > 0 && (
@@ -356,6 +365,7 @@ export default function EmpenhosPage() {
                             <td className="px-4 py-2.5 text-[12px] font-semibold tabular-nums" style={{ color: '#111827' }}>{fmt(modalItemTv)}</td>
                             <td />
                             <td className="px-4 py-2.5 text-[12px] font-semibold tabular-nums" style={{ color: '#6b7280' }}>{fmt(modalItemTc)}</td>
+                            <td colSpan={3} />
                             <td className="px-4 py-2.5 text-[12px] font-semibold tabular-nums" style={{ color: (modalItemTv - modalItemTc) >= 0 ? '#16a34a' : '#dc2626' }}>
                               {fmt(modalItemTv - modalItemTc)} lucro
                             </td>
