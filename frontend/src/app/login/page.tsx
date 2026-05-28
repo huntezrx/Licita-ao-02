@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, FileText, Loader2, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -23,12 +22,7 @@ export default function LoginPage() {
   const [requires2FA, setRequires2FA] = useState(false);
   const { login } = useAuth();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    getValues,
-  } = useForm<LoginForm>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
@@ -46,148 +40,112 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      {/* Left side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
-        >
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600">
-              <FileText className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">SistemaLicitação</h1>
-              <p className="text-xs text-slate-400">Gestão de Licitações Públicas</p>
-            </div>
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#08080a' }}>
+      {/* Subtle background glow */}
+      <div className="fixed inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(59,130,246,0.05) 0%, transparent 100%)',
+      }} />
+
+      <div className="w-full max-w-[360px] relative">
+        {/* Brand */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-4"
+            style={{ background: '#111115', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="2" y="2" width="6" height="6" rx="1.5" fill="#3b82f6" opacity="0.9"/>
+              <rect x="10" y="2" width="6" height="6" rx="1.5" fill="#3b82f6" opacity="0.5"/>
+              <rect x="2" y="10" width="6" height="6" rx="1.5" fill="#3b82f6" opacity="0.5"/>
+              <rect x="10" y="10" width="6" height="6" rx="1.5" fill="#3b82f6" opacity="0.25"/>
+            </svg>
+          </div>
+          <h1 className="text-lg font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>LicitaNex</h1>
+          <p className="text-xs mt-1" style={{ color: '#44444f' }}>Gestão de Licitações Públicas</p>
+        </div>
+
+        {/* Form card */}
+        <div className="rounded-2xl p-6" style={{ background: '#111115', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="mb-6">
+            <h2 className="text-base font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.01em' }}>
+              Acesse sua conta
+            </h2>
+            <p className="text-xs mt-1" style={{ color: '#7f7f8c' }}>Entre com suas credenciais</p>
           </div>
 
-          <div className="space-y-2 mb-8">
-            <h2 className="text-2xl font-bold text-white">Bem-vindo de volta</h2>
-            <p className="text-slate-400 text-sm">
-              Entre com suas credenciais para acessar o sistema
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  {...register('email')}
-                  type="email"
-                  placeholder="seu@email.com.br"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-              {errors.email && (
-                <p className="text-xs text-red-400">{errors.email.message}</p>
-              )}
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Email</label>
+              <input
+                {...register('email')}
+                type="email"
+                placeholder="seu@email.com.br"
+                className="input-premium"
+              />
+              {errors.email && <p className="text-[11px] mt-1" style={{ color: '#f87171' }}>{errors.email.message}</p>}
             </div>
 
             {/* Password */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Senha</label>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium" style={{ color: '#7f7f8c' }}>Senha</label>
+                <Link href="/forgot-password" className="text-[11px] transition-colors" style={{ color: '#3b82f6' }}>
+                  Esqueceu?
+                </Link>
+              </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="input-premium pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: '#44444f' }}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-red-400">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-[11px] mt-1" style={{ color: '#f87171' }}>{errors.password.message}</p>}
             </div>
 
             {/* 2FA */}
             {requires2FA && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-1.5"
-              >
-                <label className="text-sm font-medium text-slate-300">Código 2FA</label>
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Código 2FA</label>
                 <input
                   {...register('twoFactorCode')}
                   type="text"
                   maxLength={6}
                   placeholder="000000"
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 text-center text-lg tracking-widest transition-colors"
+                  className="input-premium text-center text-lg tracking-[0.3em]"
                 />
-              </motion.div>
+              </div>
             )}
-
-            <div className="flex items-center justify-end">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Esqueceu a senha?
-              </Link>
-            </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl text-white font-semibold transition-all flex items-center justify-center gap-2"
+              className="btn-primary w-full flex items-center justify-center gap-2 mt-2"
+              style={{ padding: '9px 14px', fontSize: '13px' }}
             >
               {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Entrando...
-                </>
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Entrando...</>
               ) : (
                 'Entrar'
               )}
             </button>
           </form>
-        </motion.div>
-      </div>
+        </div>
 
-      {/* Right side - Illustration */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-gradient-to-br from-blue-600/10 via-violet-600/10 to-transparent border-l border-slate-800 p-12">
-        <div className="max-w-md text-center space-y-6">
-          <div className="relative">
-            <div className="w-48 h-48 mx-auto rounded-3xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 border border-blue-500/20 flex items-center justify-center">
-              <FileText className="w-24 h-24 text-blue-400/50" />
-            </div>
-          </div>
-          <div className="space-y-3">
-            <h3 className="text-2xl font-bold text-white">
-              Gestão inteligente de licitações
-            </h3>
-            <p className="text-slate-400 leading-relaxed">
-              Monitore, analise e gerencie todas as licitações públicas em um único lugar,
-              com inteligência artificial para maximizar suas chances de sucesso.
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-8 text-center">
-            {[
-              { value: '500+', label: 'Licitações' },
-              { value: '98%', label: 'Precisão IA' },
-              { value: '3x', label: 'Mais rápido' },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <p className="text-2xl font-bold text-blue-400">{stat.value}</p>
-                <p className="text-xs text-slate-500">{stat.label}</p>
-              </div>
-            ))}
-          </div>
+        {/* Demo hint */}
+        <div className="mt-4 px-4 py-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.12)' }}>
+          <p className="text-[11px] font-medium mb-1" style={{ color: '#60a5fa' }}>Modo demonstração</p>
+          <p className="text-[11px]" style={{ color: '#7f7f8c' }}>
+            <span style={{ color: '#b0b0be' }}>admin@licitanex.com.br</span> · <span style={{ color: '#b0b0be' }}>Demo@2024</span>
+          </p>
         </div>
       </div>
     </div>

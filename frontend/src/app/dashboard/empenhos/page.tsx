@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Download, X, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, AlertTriangle, Download } from 'lucide-react';
 import { useDemoStore, Empenho, EmpenhoStatus } from '@/store/demoStore';
 
 function fmt(v: number) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+}
+function fmtFull(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
@@ -31,12 +34,15 @@ export default function EmpenhosPage() {
   const totalVenda = filtered.reduce((s, e) => s + e.qtd * e.valorVenda, 0);
   const totalCusto = filtered.reduce((s, e) => s + e.qtd * e.valorCusto, 0);
   const totalLucro = totalVenda - totalCusto;
-  const totalPendente = empenhos.filter(e => e.status === 'PENDENTE').reduce((s, e) => s + e.qtd * e.valorVenda, 0);
+  const aReceber = empenhos.filter(e => e.status === 'PENDENTE').reduce((s, e) => s + e.qtd * e.valorVenda, 0);
 
   function openAdd() { setForm(emptyForm); setModal({ open: true, editing: null }); }
-  function openEdit(e: Empenho) { setForm({ numero: e.numero, item: e.item, und: e.und, marca: e.marca, qtd: e.qtd, valorVenda: e.valorVenda, qtdEntregue: e.qtdEntregue, valorCusto: e.valorCusto, status: e.status, nf: e.nf, valorNf: e.valorNf, dataEntregaNf: e.dataEntregaNf, responsavelCompra: e.responsavelCompra, responsavelEntrega: e.responsavelEntrega, observacao: e.observacao }); setModal({ open: true, editing: e }); }
+  function openEdit(e: Empenho) {
+    setForm({ numero: e.numero, item: e.item, und: e.und, marca: e.marca, qtd: e.qtd, valorVenda: e.valorVenda, qtdEntregue: e.qtdEntregue, valorCusto: e.valorCusto, status: e.status, nf: e.nf, valorNf: e.valorNf, dataEntregaNf: e.dataEntregaNf, responsavelCompra: e.responsavelCompra, responsavelEntrega: e.responsavelEntrega, observacao: e.observacao });
+    setModal({ open: true, editing: e });
+  }
   function handleDelete(id: string, numero: string) {
-    if (window.confirm(`Confirmar exclusão do empenho ${numero}?`)) deleteEmpenho(id);
+    if (window.confirm(`Excluir empenho ${numero}?`)) deleteEmpenho(id);
   }
   function handleSave() {
     if (modal.editing) updateEmpenho(modal.editing.id, form);
@@ -44,100 +50,102 @@ export default function EmpenhosPage() {
     setModal({ open: false, editing: null });
   }
 
-  const statusBadge = (s: EmpenhoStatus): React.CSSProperties => {
-    if (s === 'PAGO') return { background: 'rgba(0,255,136,0.1)', color: '#00ff88', border: '1px solid rgba(0,255,136,0.2)' };
-    if (s === 'PENDENTE') return { background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' };
-    return { background: 'rgba(255,56,96,0.1)', color: '#ff3860', border: '1px solid rgba(255,56,96,0.2)' };
-  };
+  const statusBadgeClass = (s: EmpenhoStatus) => s === 'PAGO' ? 'badge-success' : s === 'PENDENTE' ? 'badge-warning' : 'badge-danger';
+  const statusLabel = (s: EmpenhoStatus) => ({ PAGO: 'Pago', PENDENTE: 'Pendente', CANCELADO: 'Cancelado' }[s]);
+
+  const inputCls = 'input-premium';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-5xl font-black gradient-title glow-title tracking-tight leading-none">Empenhos</h1>
-          <p className="text-slate-500 mt-2 text-sm">Gestão de notas de empenho e controle financeiro</p>
+          <h1 className="text-xl font-semibold" style={{ color: '#f0f0f2', letterSpacing: '-0.02em' }}>Empenhos</h1>
+          <p className="text-sm mt-0.5" style={{ color: '#44444f' }}>Gestão de notas de empenho</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => alert('Funcionalidade de exportação disponível na versão com backend')} className="flex items-center gap-2 px-4 py-2 rounded-xl neo-card text-slate-300 hover:text-white transition-all text-sm">
-            <Download className="w-4 h-4" /> Exportar
+          <button onClick={() => alert('Exportação disponível com backend')} className="btn-ghost flex items-center gap-1.5">
+            <Download className="w-3.5 h-3.5" /> Exportar
           </button>
-          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-xl btn-neon text-white font-medium text-sm">
-            <Plus className="w-4 h-4" /> Novo Empenho
+          <button onClick={openAdd} className="btn-primary flex items-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Novo Empenho
           </button>
         </div>
       </div>
 
-      {/* Summary Bar */}
+      {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="neo-card rounded-xl p-4">
-          <p className="text-xs text-slate-400">Receita Total</p>
-          <p className="text-lg font-bold mt-1" style={{ color: '#00ff88' }}>{fmt(totalVenda)}</p>
-        </div>
-        <div className="neo-card rounded-xl p-4">
-          <p className="text-xs text-slate-400">Custo Total</p>
-          <p className="text-lg font-bold mt-1 text-slate-300">{fmt(totalCusto)}</p>
-        </div>
-        <div className="neo-card rounded-xl p-4">
-          <p className="text-xs text-slate-400">Lucro</p>
-          <p className="text-lg font-bold mt-1" style={totalLucro >= 0 ? { color: '#00ff88', textShadow: '0 0 8px rgba(0,255,136,0.4)' } : { color: '#ff3860', textShadow: '0 0 8px rgba(255,56,96,0.4)' }}>{fmt(totalLucro)}</p>
-        </div>
-        <div className="neo-card rounded-xl p-4">
-          <p className="text-xs text-slate-400">A Receber</p>
-          <p className="text-lg font-bold mt-1 text-amber-400">{fmt(totalPendente)}</p>
-        </div>
+        {[
+          { label: 'Receita', value: fmt(totalVenda), color: '#f0f0f2' },
+          { label: 'Custo', value: fmt(totalCusto), color: '#7f7f8c' },
+          { label: 'Lucro', value: fmt(totalLucro), color: totalLucro >= 0 ? '#4ade80' : '#f87171' },
+          { label: 'A Receber', value: fmt(aReceber), color: '#fbbf24' },
+        ].map(s => (
+          <div key={s.label} className="surface rounded-xl px-4 py-3.5">
+            <p className="text-[11px]" style={{ color: '#44444f' }}>{s.label}</p>
+            <p className="text-base font-semibold tabular-nums mt-0.5" style={{ color: s.color }}>{s.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Filter tabs */}
+      <div className="flex gap-1">
         {(['TODOS', 'PENDENTE', 'PAGO', 'CANCELADO'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${filter === f ? 'btn-neon text-white' : 'neo-card text-slate-400 hover:text-white'}`}>
-            {f} <span className={`px-1.5 py-0.5 rounded-full text-xs ${filter === f ? 'bg-white/20' : 'bg-white/10'}`}>{counts[f]}</span>
+          <button key={f} onClick={() => setFilter(f)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+            style={{
+              background: filter === f ? '#1c1c28' : 'transparent',
+              color: filter === f ? '#d4d4f0' : '#44444f',
+              border: filter === f ? '1px solid rgba(59,130,246,0.2)' : '1px solid transparent',
+            }}>
+            {f === 'TODOS' ? 'Todos' : f === 'PAGO' ? 'Pagos' : f === 'PENDENTE' ? 'Pendentes' : 'Cancelados'}
+            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#7f7f8c' }}>{counts[f]}</span>
           </button>
         ))}
       </div>
 
       {/* Table */}
-      <div className="neo-card rounded-2xl overflow-hidden">
+      <div className="surface rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                {['Nº Empenho', 'Item', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total Venda', 'Qtd Entregue', 'Vlr Custo', 'Total Custo', 'Lucro', 'NF', 'Status', 'Ações'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                ))}
+              <tr>
+                <th>Nº Empenho</th><th>Item</th><th>Und</th><th>Qtd</th>
+                <th>Vlr Venda</th><th>Total Venda</th><th>Vlr Custo</th><th>Total Custo</th>
+                <th>Lucro</th><th>NF</th><th>Status</th><th></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((e) => {
+              {filtered.map(e => {
                 const tv = e.qtd * e.valorVenda;
                 const tc = e.qtd * e.valorCusto;
                 const lucro = tv - tc;
                 const alerta = e.valorCusto > e.valorVenda;
                 return (
-                  <tr key={e.id} className="transition-all group" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: alerta ? 'rgba(255,56,96,0.07)' : 'transparent' }}>
-                    <td className="px-4 py-3 font-mono whitespace-nowrap" style={{ color: '#a78bfa' }}>{alerta && <AlertTriangle className="w-3 h-3 text-[#ff3860] inline mr-1" />}{e.numero}</td>
-                    <td className="px-4 py-3 text-slate-200 max-w-[180px] truncate" title={e.item}>{e.item}</td>
-                    <td className="px-4 py-3 text-slate-400">{e.und}</td>
-                    <td className="px-4 py-3 text-slate-400">{e.marca}</td>
-                    <td className="px-4 py-3 text-white">{e.qtd}</td>
-                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{fmt(e.valorVenda)}</td>
-                    <td className="px-4 py-3 text-white font-medium whitespace-nowrap">{fmt(tv)}</td>
-                    <td className="px-4 py-3 text-slate-300">{e.qtdEntregue}</td>
-                    <td className="px-4 py-3 whitespace-nowrap font-medium" style={alerta ? { color: '#ff3860' } : { color: '#94a3b8' }}>{fmt(e.valorCusto)}</td>
-                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{fmt(tc)}</td>
-                    <td className="px-4 py-3 font-semibold whitespace-nowrap" style={lucro >= 0 ? { color: '#00ff88' } : { color: '#ff3860' }}>{fmt(lucro)}</td>
-                    <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{e.nf || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium" style={statusBadge(e.status)}>{e.status}</span>
+                  <tr key={e.id} className="group" style={{ background: alerta ? 'rgba(248,113,113,0.03)' : undefined }}>
+                    <td>
+                      <span className="font-mono text-[12px]" style={{ color: '#60a5fa' }}>
+                        {alerta && <AlertTriangle className="w-3 h-3 inline mr-1" style={{ color: '#f87171' }} />}
+                        {e.numero}
+                      </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-colors">
-                          <Pencil className="w-3.5 h-3.5" />
+                    <td className="max-w-[160px] truncate" title={e.item} style={{ color: '#d4d4d8' }}>{e.item}</td>
+                    <td style={{ color: '#7f7f8c' }}>{e.und}</td>
+                    <td className="tabular-nums">{e.qtd}</td>
+                    <td className="tabular-nums" style={{ color: '#7f7f8c' }}>{fmtFull(e.valorVenda)}</td>
+                    <td className="tabular-nums font-medium" style={{ color: '#f0f0f2' }}>{fmt(tv)}</td>
+                    <td className="tabular-nums" style={{ color: alerta ? '#f87171' : '#7f7f8c' }}>{fmtFull(e.valorCusto)}</td>
+                    <td className="tabular-nums" style={{ color: '#7f7f8c' }}>{fmt(tc)}</td>
+                    <td className="tabular-nums font-semibold" style={{ color: lucro >= 0 ? '#4ade80' : '#f87171' }}>{fmt(lucro)}</td>
+                    <td style={{ color: '#7f7f8c' }}>{e.nf || '—'}</td>
+                    <td><span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${statusBadgeClass(e.status)}`}>{statusLabel(e.status)}</span></td>
+                    <td>
+                      <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openEdit(e)} className="p-1.5 rounded-md transition-colors" style={{ color: '#60a5fa', background: 'rgba(59,130,246,0.08)' }}>
+                          <Pencil className="w-3 h-3" />
                         </button>
-                        <button onClick={() => handleDelete(e.id, e.numero)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button onClick={() => handleDelete(e.id, e.numero)} className="p-1.5 rounded-md transition-colors" style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)' }}>
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </td>
@@ -146,13 +154,14 @@ export default function EmpenhosPage() {
               })}
             </tbody>
             <tfoot>
-              <tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
-                <td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase" colSpan={6}>Totais ({filtered.length} empenhos)</td>
-                <td className="px-4 py-3 text-white font-bold">{fmt(totalVenda)}</td>
-                <td className="px-4 py-3" />
-                <td className="px-4 py-3" />
-                <td className="px-4 py-3 text-white font-bold">{fmt(totalCusto)}</td>
-                <td className="px-4 py-3 font-bold" style={totalLucro >= 0 ? { color: '#00ff88' } : { color: '#ff3860' }}>{fmt(totalLucro)}</td>
+              <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <td colSpan={5} className="px-4 py-3 text-[11px]" style={{ color: '#44444f' }}>
+                  {filtered.length} empenho{filtered.length !== 1 ? 's' : ''}
+                </td>
+                <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: '#f0f0f2' }}>{fmt(totalVenda)}</td>
+                <td />
+                <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: '#7f7f8c' }}>{fmt(totalCusto)}</td>
+                <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: totalLucro >= 0 ? '#4ade80' : '#f87171' }}>{fmt(totalLucro)}</td>
                 <td colSpan={3} />
               </tr>
             </tfoot>
@@ -162,24 +171,24 @@ export default function EmpenhosPage() {
 
       {/* Modal */}
       {modal.open && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="neo-card rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <h2 className="text-xl font-black gradient-title">{modal.editing ? 'Editar Empenho' : 'Novo Empenho'}</h2>
-              <button onClick={() => setModal({ open: false, editing: null })} className="p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: '#111115', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h2 className="text-sm font-semibold" style={{ color: '#f0f0f2' }}>{modal.editing ? 'Editar Empenho' : 'Novo Empenho'}</h2>
+              <button onClick={() => setModal({ open: false, editing: null })} className="p-1.5 rounded-lg transition-colors" style={{ color: '#44444f' }}>
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-6 grid grid-cols-2 gap-4">
               {([
                 { label: 'Nº Empenho', key: 'numero', type: 'text' },
-                { label: 'Item/Objeto', key: 'item', type: 'text', full: true },
+                { label: 'Item / Objeto', key: 'item', type: 'text', full: true },
                 { label: 'Unidade', key: 'und', type: 'text' },
                 { label: 'Marca', key: 'marca', type: 'text' },
                 { label: 'Quantidade', key: 'qtd', type: 'number' },
-                { label: 'Valor Venda (unit)', key: 'valorVenda', type: 'number' },
+                { label: 'Valor de Venda (unit.)', key: 'valorVenda', type: 'number' },
                 { label: 'Qtd Entregue', key: 'qtdEntregue', type: 'number' },
-                { label: 'Valor Custo (unit)', key: 'valorCusto', type: 'number' },
+                { label: 'Valor de Custo (unit.)', key: 'valorCusto', type: 'number' },
                 { label: 'Nº NF', key: 'nf', type: 'text' },
                 { label: 'Valor NF', key: 'valorNf', type: 'number' },
                 { label: 'Data Entrega NF', key: 'dataEntregaNf', type: 'date' },
@@ -187,35 +196,28 @@ export default function EmpenhosPage() {
                 { label: 'Resp. Entrega', key: 'responsavelEntrega', type: 'text' },
               ] as { label: string; key: keyof Omit<Empenho, 'id' | 'createdAt'>; type: string; full?: boolean }[]).map(({ label, key, type, full }) => (
                 <div key={key} className={full ? 'col-span-2' : ''}>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
-                  <input
-                    type={type}
-                    value={form[key] as string | number}
+                  <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>{label}</label>
+                  <input type={type} value={form[key] as string | number}
                     onChange={ev => setForm(f => ({ ...f, [key]: type === 'number' ? parseFloat(ev.target.value) || 0 : ev.target.value }))}
-                    className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all placeholder-slate-600"
-                  />
+                    className={inputCls} />
                 </div>
               ))}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Status</label>
-                <select value={form.status} onChange={ev => setForm(f => ({ ...f, status: ev.target.value as EmpenhoStatus }))}
-                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all">
-                  <option value="PENDENTE">PENDENTE</option>
-                  <option value="PAGO">PAGO</option>
-                  <option value="CANCELADO">CANCELADO</option>
+                <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Status</label>
+                <select value={form.status} onChange={ev => setForm(f => ({ ...f, status: ev.target.value as EmpenhoStatus }))} className={`${inputCls} select`} style={{ background: '#161619' }}>
+                  <option value="PENDENTE">Pendente</option>
+                  <option value="PAGO">Pago</option>
+                  <option value="CANCELADO">Cancelado</option>
                 </select>
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Observação</label>
-                <textarea value={form.observacao} onChange={ev => setForm(f => ({ ...f, observacao: ev.target.value }))} rows={2}
-                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500/50 transition-all resize-none placeholder-slate-600" />
+                <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>Observação</label>
+                <textarea value={form.observacao} onChange={ev => setForm(f => ({ ...f, observacao: ev.target.value }))} rows={2} className={inputCls} style={{ resize: 'none' }} />
               </div>
             </div>
-            <div className="flex gap-3 p-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <button onClick={() => setModal({ open: false, editing: null })} className="flex-1 py-2.5 rounded-xl neo-card text-slate-300 hover:text-white transition-all text-sm font-medium">Cancelar</button>
-              <button onClick={handleSave} className="flex-1 py-2.5 rounded-xl btn-neon text-white font-medium text-sm">
-                {modal.editing ? 'Salvar Alterações' : 'Criar Empenho'}
-              </button>
+            <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={() => setModal({ open: false, editing: null })} className="btn-ghost flex-1">Cancelar</button>
+              <button onClick={handleSave} className="btn-primary flex-1">{modal.editing ? 'Salvar Alterações' : 'Criar Empenho'}</button>
             </div>
           </div>
         </div>
