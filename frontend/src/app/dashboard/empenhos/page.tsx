@@ -174,18 +174,106 @@ export default function EmpenhosPage() {
   }
 
   function exportCSV() {
-    const headers = ['Nº Empenho', 'Fornecedor', 'Órgão', 'Status', 'Resp. Compra', 'Resp. Entrega', 'Item #', 'Descrição', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total Venda', 'Qtd Entregue', 'Falta Entregar', 'Vlr Custo', 'Total Custo', 'NF', 'Valor NF', 'Data Entrega NF', 'Status NF', 'Data Pagamento', 'Criado em'];
-    const rows: (string | number)[][] = [];
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const fmtStatus: Record<string, string> = {
+      PENDENTE: 'Pendente', EM_ENTREGA: 'Em Entrega',
+      ENTREGA_PARCIAL: 'Entrega Parcial', ENTREGA_TOTAL: 'Entrega Total', CANCELADO: 'Cancelado',
+    };
+    const fmtNfStatus: Record<string, string> = {
+      AGUARDANDO_PAGAMENTO: 'Aguardando Pagamento',
+      PAGAMENTO_EFETUADO: 'Pagamento Efetuado',
+      NOTA_CANCELADA: 'Nota Cancelada',
+    };
+    const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const fmtDate = (d: string) => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '';
+
+    const lines: string[] = [];
+    const cell = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const row = (...cols: (string | number)[]) => lines.push(cols.map(cell).join(';'));
+
+    // ── Cabeçalho do relatório ──────────────────────────────────
+    row('IMPACTA EMPREENDIMENTOS', '', '', '', '', '', '', '', '', '', '', '', '', '');
+    row('Relatório de Empenhos', '', '', '', '', '', '', '', '', '', '', '', '', '');
+    row(`Emitido em: ${hoje}`, '', '', '', '', '', '', '', '', '', '', '', '', '');
+    row(`Filtro: ${filter === 'TODOS' ? 'Todos os empenhos' : fmtStatus[filter]}`, '', '', '', '', '', '', '', '', '', '', '', '', '');
+    row('');
+
+    // ── Totais gerais ──────────────────────────────────────────
+    row('RESUMO GERAL', '', '', '', '', '', '', '', '', '', '', '', '', '');
+    row('Total de Empenhos', filtered.length, '', '', '', '', '', '', '', '', '', '', '', '');
+    row('Valor Total de Venda', fmtBRL(allTv), '', '', '', '', '', '', '', '', '', '', '', '');
+    row('Total Custo (entregue)', fmtBRL(allTc), '', '', '', '', '', '', '', '', '', '', '', '');
+    row('');
+
+    // ── Colunas da tabela ──────────────────────────────────────
+    row(
+      'Nº Empenho', 'Fornecedor', 'Órgão', 'Status Empenho',
+      'Resp. Compra', 'Resp. Entrega', 'Data Criação',
+      'Item #', 'Descrição do Item', 'Unidade', 'Marca',
+      'Qtd Pedida', 'Vlr Unitário Venda', 'Total Venda',
+      'Qtd Entregue', 'Falta Entregar',
+      'Vlr Unitário Custo', 'Total Custo',
+      'Nota Fiscal', 'Valor NF', 'Data Entrega NF',
+      'Status NF', 'Data Pagamento NF',
+    );
+
+    // ── Linhas por empenho / item ──────────────────────────────
     filtered.forEach(e => {
+      const tv = e.itens.reduce((s, i) => s + i.qtd * i.valorVenda, 0);
+      const tc = e.itens.reduce((s, i) => s + i.qtdEntregue * i.valorCusto, 0);
+
       e.itens.forEach((it, idx) => {
-        rows.push([e.numero, e.fornecedor, e.orgao, e.status, e.responsavelCompra, e.responsavelEntrega, idx + 1, it.descricao, it.und, it.marca, it.qtd, it.valorVenda, it.qtd * it.valorVenda, it.qtdEntregue, it.qtd - it.qtdEntregue, it.valorCusto, it.qtdEntregue * it.valorCusto, it.nf, it.valorNf, it.dataEntregaNf, it.nfStatus, it.nfDataPagamento, e.createdAt]);
+        row(
+          e.numero,
+          e.fornecedor,
+          e.orgao,
+          fmtStatus[e.status] ?? e.status,
+          e.responsavelCompra,
+          e.responsavelEntrega,
+          fmtDate(e.createdAt),
+          idx + 1,
+          it.descricao,
+          it.und,
+          it.marca,
+          it.qtd,
+          fmtBRL(it.valorVenda),
+          fmtBRL(it.qtd * it.valorVenda),
+          it.qtdEntregue,
+          it.qtd - it.qtdEntregue,
+          fmtBRL(it.valorCusto),
+          fmtBRL(it.qtdEntregue * it.valorCusto),
+          it.nf,
+          it.valorNf ? fmtBRL(it.valorNf) : '',
+          fmtDate(it.dataEntregaNf),
+          fmtNfStatus[it.nfStatus] ?? '',
+          fmtDate(it.nfDataPagamento),
+        );
       });
+
+      // Subtotal por empenho
+      row(
+        '', `SUBTOTAL — ${e.numero}`, '', '', '', '', '',
+        `${e.itens.length} itens`, '', '', '',
+        e.itens.reduce((s, i) => s + i.qtd, 0), '', fmtBRL(tv),
+        e.itens.reduce((s, i) => s + i.qtdEntregue, 0),
+        e.itens.reduce((s, i) => s + (i.qtd - i.qtdEntregue), 0),
+        '', fmtBRL(tc),
+        '', '', '', '', '',
+      );
+      row('');
     });
-    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+
+    // ── Rodapé ─────────────────────────────────────────────────
+    row('');
+    row('TOTAL GERAL', '', '', '', '', '', '', '', '', '', '', '', '', fmtBRL(allTv), '', '', '', fmtBRL(allTc), '', '', '', '', '');
+
+    const csv = lines.join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `empenhos-${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    a.href = url;
+    a.download = `Impacta-Empenhos-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
   }
 
