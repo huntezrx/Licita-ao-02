@@ -6,10 +6,12 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SistemaLicitação - Gestão de Licitações Públicas',
-  description: 'Sistema enterprise de gestão de licitações públicas, contratos e propostas',
+  title: 'Impacta Empreendimentos - Gestão de Licitações',
+  description: 'Sistema de gestão de licitações públicas da Impacta Empreendimentos',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
 };
 
