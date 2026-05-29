@@ -8,12 +8,12 @@ function fmt(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', 
 export default function FinanceiroPage() {
   const { empenhos } = useDemoStore();
 
-  const pagos = empenhos.filter(e => e.status === 'PAGO');
+  const pagos = empenhos.filter(e => e.status === 'ENTREGA_TOTAL');
   const pendentes = empenhos.filter(e => e.status === 'PENDENTE');
   const alertas = empenhos.filter(e => e.itens.some(i => i.valorCusto > i.valorVenda));
 
   const eTv = (e: typeof empenhos[0]) => e.itens.reduce((s, i) => s + i.qtd * i.valorVenda, 0);
-  const eTc = (e: typeof empenhos[0]) => e.itens.reduce((s, i) => s + i.qtd * i.valorCusto, 0);
+  const eTc = (e: typeof empenhos[0]) => e.itens.reduce((s, i) => s + i.qtdEntregue * i.valorCusto, 0);
   const receita = empenhos.reduce((s, e) => s + eTv(e), 0);
   const custo = empenhos.reduce((s, e) => s + eTc(e), 0);
   const lucro = receita - custo;
@@ -60,7 +60,7 @@ export default function FinanceiroPage() {
         {/* Pagos */}
         <div className="surface rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-            <p className="text-sm font-semibold" style={{ color: '#111827' }}>Pagos</p>
+            <p className="text-sm font-semibold" style={{ color: '#111827' }}>Entrega Total</p>
             <span className="badge-success inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium">{pagos.length}</span>
           </div>
           <div>

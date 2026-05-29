@@ -3,7 +3,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dbEmpenhos, dbLicitacoes } from '@/services/db.service';
 
-export type EmpenhoStatus = 'PENDENTE' | 'PAGO' | 'CANCELADO';
+export type EmpenhoStatus = 'PENDENTE' | 'EM_ENTREGA' | 'ENTREGA_PARCIAL' | 'ENTREGA_TOTAL' | 'CANCELADO';
+export type NfStatus = 'AGUARDANDO_PAGAMENTO' | 'PAGAMENTO_EFETUADO' | 'NOTA_CANCELADA';
 export type LicitacaoStatus = 'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA' | 'CANCELADA' | 'SUSPENSA';
 export type LicitacaoModalidade = 'PREGAO_ELETRONICO' | 'PREGAO_PRESENCIAL' | 'CONCORRENCIA' | 'TOMADA_PRECOS' | 'CONVITE' | 'DISPENSA';
 
@@ -19,6 +20,9 @@ export interface EmpenhoItem {
   nf: string;
   valorNf: number;
   dataEntregaNf: string;
+  nfStatus: NfStatus;
+  nfDataPagamento: string;
+  nfArquivo: string;
 }
 
 export interface Empenho {
@@ -53,50 +57,42 @@ const initialEmpenhos: Empenho[] = [
   {
     id: '1', numero: '2026NE000395', fornecedor: 'IMPACTA EMPREENDIMENTOS LTDA', orgao: 'Comando da Aeronáutica - BABV',
     itens: [
-      { id: '1-1', descricao: 'Açúcar Cristal Orgânico Pacote 1kg', und: 'UN', marca: '', qtd: 450, valorVenda: 4.00, qtdEntregue: 450, valorCusto: 3.20, nf: 'NF-001234', valorNf: 1800.00, dataEntregaNf: '2024-03-15' },
-      { id: '1-2', descricao: 'Arroz Beneficiado Agulhinha Polido Tipo 1', und: 'UN', marca: '', qtd: 750, valorVenda: 4.85, qtdEntregue: 750, valorCusto: 3.90, nf: 'NF-001234', valorNf: 3637.50, dataEntregaNf: '2024-03-15' },
-      { id: '1-3', descricao: 'Farinha de Mandioca Amarela Fina Tipo 1', und: 'UN', marca: '', qtd: 91, valorVenda: 4.20, qtdEntregue: 91, valorCusto: 3.50, nf: 'NF-001234', valorNf: 382.20, dataEntregaNf: '2024-03-15' },
-      { id: '1-4', descricao: 'Feijão Carioca Tipo 1', und: 'UN', marca: '', qtd: 250, valorVenda: 5.80, qtdEntregue: 250, valorCusto: 4.60, nf: 'NF-001234', valorNf: 1450.00, dataEntregaNf: '2024-03-15' },
-      { id: '1-5', descricao: 'Óleo Vegetal Soja Tipo 1 Embalagem 900ml', und: 'UN', marca: '', qtd: 120, valorVenda: 7.50, qtdEntregue: 120, valorCusto: 6.20, nf: 'NF-001234', valorNf: 900.00, dataEntregaNf: '2024-03-15' },
-      { id: '1-6', descricao: 'Refrigerante Cola Embalagem 350ml', und: 'UN', marca: '', qtd: 100, valorVenda: 3.25, qtdEntregue: 100, valorCusto: 2.80, nf: 'NF-001234', valorNf: 325.00, dataEntregaNf: '2024-03-15' },
-      { id: '1-7', descricao: 'Refrigerante Guaraná Embalagem 350ml', und: 'UN', marca: '', qtd: 100, valorVenda: 3.25, qtdEntregue: 100, valorCusto: 2.80, nf: 'NF-001234', valorNf: 325.00, dataEntregaNf: '2024-03-15' },
+      { id: '1-1', descricao: 'Açúcar Cristal Orgânico Pacote 1kg', und: 'UN', marca: '', qtd: 450, valorVenda: 4.00, qtdEntregue: 450, valorCusto: 3.20, nf: 'NF-001234', valorNf: 1800.00, dataEntregaNf: '2024-03-15', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-10', nfArquivo: '' },
+      { id: '1-2', descricao: 'Arroz Beneficiado Agulhinha Polido Tipo 1', und: 'UN', marca: '', qtd: 750, valorVenda: 4.85, qtdEntregue: 750, valorCusto: 3.90, nf: 'NF-001234', valorNf: 3637.50, dataEntregaNf: '2024-03-15', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-10', nfArquivo: '' },
+      { id: '1-3', descricao: 'Farinha de Mandioca Amarela Fina Tipo 1', und: 'UN', marca: '', qtd: 91, valorVenda: 4.20, qtdEntregue: 91, valorCusto: 3.50, nf: 'NF-001234', valorNf: 382.20, dataEntregaNf: '2024-03-15', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-10', nfArquivo: '' },
+      { id: '1-4', descricao: 'Feijão Carioca Tipo 1', und: 'UN', marca: '', qtd: 250, valorVenda: 5.80, qtdEntregue: 250, valorCusto: 4.60, nf: 'NF-001234', valorNf: 1450.00, dataEntregaNf: '2024-03-15', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-10', nfArquivo: '' },
+      { id: '1-5', descricao: 'Óleo Vegetal Soja Tipo 1 Embalagem 900ml', und: 'UN', marca: '', qtd: 120, valorVenda: 7.50, qtdEntregue: 120, valorCusto: 6.20, nf: 'NF-001234', valorNf: 900.00, dataEntregaNf: '2024-03-15', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-10', nfArquivo: '' },
+      { id: '1-6', descricao: 'Refrigerante Cola Embalagem 350ml', und: 'UN', marca: '', qtd: 100, valorVenda: 3.25, qtdEntregue: 100, valorCusto: 2.80, nf: 'NF-001234', valorNf: 325.00, dataEntregaNf: '2024-03-15', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-10', nfArquivo: '' },
+      { id: '1-7', descricao: 'Refrigerante Guaraná Embalagem 350ml', und: 'UN', marca: '', qtd: 100, valorVenda: 3.25, qtdEntregue: 100, valorCusto: 2.80, nf: 'NF-001234', valorNf: 325.00, dataEntregaNf: '2024-03-15', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-10', nfArquivo: '' },
     ],
-    status: 'PAGO',
-    responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza',
-    observacao: '', createdAt: '2024-03-01',
+    status: 'ENTREGA_TOTAL', responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza', observacao: '', createdAt: '2024-03-01',
   },
   {
     id: '2', numero: '2024NE002', fornecedor: 'Dell Computadores do Brasil LTDA', orgao: 'Secretaria de Educação - SP',
     itens: [
-      { id: '2-1', descricao: 'Notebook Dell Inspiron 15 i7 16GB RAM 512GB SSD', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 4500.00, qtdEntregue: 3, valorCusto: 3800.00, nf: '', valorNf: 0, dataEntregaNf: '' },
-      { id: '2-2', descricao: 'Mouse sem fio Dell WM326', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 120.00, qtdEntregue: 3, valorCusto: 85.00, nf: '', valorNf: 0, dataEntregaNf: '' },
-      { id: '2-3', descricao: 'Teclado Dell KB216 USB ABNT2', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 95.00, qtdEntregue: 3, valorCusto: 65.00, nf: '', valorNf: 0, dataEntregaNf: '' },
+      { id: '2-1', descricao: 'Notebook Dell Inspiron 15 i7 16GB RAM 512GB SSD', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 4500.00, qtdEntregue: 3, valorCusto: 3800.00, nf: '', valorNf: 0, dataEntregaNf: '', nfStatus: 'AGUARDANDO_PAGAMENTO', nfDataPagamento: '', nfArquivo: '' },
+      { id: '2-2', descricao: 'Mouse sem fio Dell WM326', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 120.00, qtdEntregue: 3, valorCusto: 85.00, nf: '', valorNf: 0, dataEntregaNf: '', nfStatus: 'AGUARDANDO_PAGAMENTO', nfDataPagamento: '', nfArquivo: '' },
+      { id: '2-3', descricao: 'Teclado Dell KB216 USB ABNT2', und: 'UN', marca: 'Dell', qtd: 5, valorVenda: 95.00, qtdEntregue: 3, valorCusto: 65.00, nf: '', valorNf: 0, dataEntregaNf: '', nfStatus: 'AGUARDANDO_PAGAMENTO', nfDataPagamento: '', nfArquivo: '' },
     ],
-    status: 'PENDENTE',
-    responsavelCompra: 'Pedro Costa', responsavelEntrega: 'Pedro Costa',
-    observacao: 'Aguardando entrega das 2 unidades restantes', createdAt: '2024-03-05',
+    status: 'ENTREGA_PARCIAL', responsavelCompra: 'Pedro Costa', responsavelEntrega: 'Pedro Costa', observacao: 'Aguardando entrega das 2 unidades restantes', createdAt: '2024-03-05',
   },
   {
     id: '3', numero: '2024NE003', fornecedor: 'Flexform Móveis e Decorações LTDA', orgao: 'Prefeitura Municipal de Campinas',
     itens: [
-      { id: '3-1', descricao: 'Cadeira Ergonômica Premium com apoio lombar', und: 'UN', marca: 'Flexform', qtd: 15, valorVenda: 850.00, qtdEntregue: 15, valorCusto: 920.00, nf: 'NF-001235', valorNf: 12750.00, dataEntregaNf: '2024-03-20' },
-      { id: '3-2', descricao: 'Mesa de Escritório formato L 1,80m x 1,20m', und: 'UN', marca: 'Flexform', qtd: 5, valorVenda: 1200.00, qtdEntregue: 5, valorCusto: 980.00, nf: 'NF-001235', valorNf: 6000.00, dataEntregaNf: '2024-03-20' },
+      { id: '3-1', descricao: 'Cadeira Ergonômica Premium com apoio lombar', und: 'UN', marca: 'Flexform', qtd: 15, valorVenda: 850.00, qtdEntregue: 15, valorCusto: 920.00, nf: 'NF-001235', valorNf: 12750.00, dataEntregaNf: '2024-03-20', nfStatus: 'AGUARDANDO_PAGAMENTO', nfDataPagamento: '', nfArquivo: '' },
+      { id: '3-2', descricao: 'Mesa de Escritório formato L 1,80m x 1,20m', und: 'UN', marca: 'Flexform', qtd: 5, valorVenda: 1200.00, qtdEntregue: 5, valorCusto: 980.00, nf: 'NF-001235', valorNf: 6000.00, dataEntregaNf: '2024-03-20', nfStatus: 'AGUARDANDO_PAGAMENTO', nfDataPagamento: '', nfArquivo: '' },
     ],
-    status: 'PENDENTE',
-    responsavelCompra: 'Maria Lima', responsavelEntrega: 'João Ferreira',
-    observacao: 'ATENÇÃO: custo da cadeira acima do valor de venda', createdAt: '2024-03-08',
+    status: 'ENTREGA_TOTAL', responsavelCompra: 'Maria Lima', responsavelEntrega: 'João Ferreira', observacao: 'ATENÇÃO: custo da cadeira acima do valor de venda', createdAt: '2024-03-08',
   },
   {
     id: '4', numero: '2024NE004', fornecedor: 'Distribuidora Papel Sul LTDA', orgao: 'TRT 2ª Região',
     itens: [
-      { id: '4-1', descricao: 'Papel Sulfite A4 75g Resma 500 folhas', und: 'PCT', marca: 'Chamex', qtd: 500, valorVenda: 28.00, qtdEntregue: 500, valorCusto: 19.50, nf: 'NF-001236', valorNf: 14000.00, dataEntregaNf: '2024-03-10' },
-      { id: '4-2', descricao: 'Caneta BIC Cristal Azul caixa 50 unidades', und: 'CX', marca: 'BIC', qtd: 50, valorVenda: 35.00, qtdEntregue: 50, valorCusto: 22.00, nf: 'NF-001237', valorNf: 1750.00, dataEntregaNf: '2024-03-10' },
-      { id: '4-3', descricao: 'Grampeador Maped médio 26/6', und: 'UN', marca: 'Maped', qtd: 20, valorVenda: 45.00, qtdEntregue: 20, valorCusto: 32.00, nf: 'NF-001237', valorNf: 900.00, dataEntregaNf: '2024-03-10' },
-      { id: '4-4', descricao: 'Clipes para papel 50mm caixa 100 unidades', und: 'CX', marca: 'Spiral', qtd: 100, valorVenda: 5.50, qtdEntregue: 100, valorCusto: 3.80, nf: 'NF-001237', valorNf: 550.00, dataEntregaNf: '2024-03-10' },
+      { id: '4-1', descricao: 'Papel Sulfite A4 75g Resma 500 folhas', und: 'PCT', marca: 'Chamex', qtd: 500, valorVenda: 28.00, qtdEntregue: 500, valorCusto: 19.50, nf: 'NF-001236', valorNf: 14000.00, dataEntregaNf: '2024-03-10', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-05', nfArquivo: '' },
+      { id: '4-2', descricao: 'Caneta BIC Cristal Azul caixa 50 unidades', und: 'CX', marca: 'BIC', qtd: 50, valorVenda: 35.00, qtdEntregue: 50, valorCusto: 22.00, nf: 'NF-001237', valorNf: 1750.00, dataEntregaNf: '2024-03-10', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-05', nfArquivo: '' },
+      { id: '4-3', descricao: 'Grampeador Maped médio 26/6', und: 'UN', marca: 'Maped', qtd: 20, valorVenda: 45.00, qtdEntregue: 20, valorCusto: 32.00, nf: 'NF-001237', valorNf: 900.00, dataEntregaNf: '2024-03-10', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-05', nfArquivo: '' },
+      { id: '4-4', descricao: 'Clipes para papel 50mm caixa 100 unidades', und: 'CX', marca: 'Spiral', qtd: 100, valorVenda: 5.50, qtdEntregue: 100, valorCusto: 3.80, nf: 'NF-001237', valorNf: 550.00, dataEntregaNf: '2024-03-10', nfStatus: 'PAGAMENTO_EFETUADO', nfDataPagamento: '2024-04-05', nfArquivo: '' },
     ],
-    status: 'PAGO',
-    responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza',
-    observacao: '', createdAt: '2024-03-10',
+    status: 'ENTREGA_TOTAL', responsavelCompra: 'Carlos Silva', responsavelEntrega: 'Ana Souza', observacao: '', createdAt: '2024-03-10',
   },
 ];
 
@@ -116,6 +112,7 @@ interface DemoStore {
   addEmpenho: (e: Omit<Empenho, 'id' | 'createdAt'>) => void;
   updateEmpenho: (id: string, e: Partial<Empenho>) => void;
   deleteEmpenho: (id: string) => void;
+  updateNFStatus: (empenhoId: string, nfNumero: string, updates: { nfStatus?: NfStatus; nfDataPagamento?: string; nfArquivo?: string }) => void;
   addLicitacao: (l: Omit<Licitacao, 'id' | 'createdAt'>) => void;
   updateLicitacao: (id: string, l: Partial<Licitacao>) => void;
   deleteLicitacao: (id: string) => void;
@@ -156,6 +153,22 @@ export const useDemoStore = create<DemoStore>()(
         dbEmpenhos.delete(id);
       },
 
+      updateNFStatus: (empenhoId, nfNumero, updates) => {
+        set((s) => ({
+          empenhos: s.empenhos.map((e) => {
+            if (e.id !== empenhoId) return e;
+            return {
+              ...e,
+              itens: e.itens.map((it) =>
+                it.nf === nfNumero ? { ...it, ...updates } : it
+              ),
+            };
+          }),
+        }));
+        const updated = get().empenhos.find((x) => x.id === empenhoId);
+        if (updated) dbEmpenhos.upsert(updated);
+      },
+
       addLicitacao: (l) => {
         const nova: Licitacao = { ...l, id: Date.now().toString(), createdAt: new Date().toISOString().split('T')[0] };
         set((s) => ({ licitacoes: [nova, ...s.licitacoes] }));
@@ -174,7 +187,7 @@ export const useDemoStore = create<DemoStore>()(
       },
     }),
     {
-      name: 'licitanex-data-v3',
+      name: 'licitanex-data-v4',
       partialize: (s) => ({ empenhos: s.empenhos, licitacoes: s.licitacoes }),
       merge: (persisted: unknown, current) => {
         const p = persisted as Partial<typeof current>;
@@ -182,6 +195,8 @@ export const useDemoStore = create<DemoStore>()(
           ...e,
           itens: Array.isArray(e.itens) ? e.itens.map(it => ({
             nf: '', valorNf: 0, dataEntregaNf: '',
+            nfStatus: 'AGUARDANDO_PAGAMENTO' as NfStatus,
+            nfDataPagamento: '', nfArquivo: '',
             ...it,
           })) : [],
           fornecedor: e.fornecedor ?? '',

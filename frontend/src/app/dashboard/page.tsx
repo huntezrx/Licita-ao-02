@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const lucro = receita - custo;
   const margem = receita > 0 ? ((lucro / receita) * 100).toFixed(1) : '0.0';
   const pendentes = empenhos.filter(e => e.status === 'PENDENTE');
-  const pagos = empenhos.filter(e => e.status === 'PAGO');
+  const pagos = empenhos.filter(e => e.status === 'ENTREGA_TOTAL');
   const aReceber = pendentes.reduce((s, e) => s + empenhoTv(e), 0);
   const ativas = licitacoes.filter(l => l.status === 'ABERTA' || l.status === 'EM_ANDAMENTO');
   const recentes = [...empenhos].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
@@ -61,7 +61,7 @@ export default function DashboardPage() {
       {/* Status bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {[
-          { label: 'Pagos', count: pagos.length, value: pagos.reduce((s,e) => s+empenhoTv(e),0), color: '#16a34a' },
+          { label: 'Entrega Total', count: pagos.length, value: pagos.reduce((s,e) => s+empenhoTv(e),0), color: '#16a34a' },
           { label: 'Pendentes', count: pendentes.length, value: aReceber, color: '#d97706' },
           { label: 'Cancelados', count: empenhos.filter(e=>e.status==='CANCELADO').length, value: empenhos.filter(e=>e.status==='CANCELADO').reduce((s,e)=>s+empenhoTv(e),0), color: '#dc2626' },
         ].map(s => (
@@ -97,9 +97,11 @@ export default function DashboardPage() {
             {recentes.map(e => {
               const tv = empenhoTv(e);
               const lucroItem = tv - empenhoCusto(e);
-              const statusMap = {
-                PAGO: { label: 'Pago', cls: 'badge-success' },
+              const statusMap: Record<string, { label: string; cls: string }> = {
                 PENDENTE: { label: 'Pendente', cls: 'badge-warning' },
+                EM_ENTREGA: { label: 'Em Entrega', cls: 'badge-blue' },
+                ENTREGA_PARCIAL: { label: 'Entrega Parcial', cls: 'badge-warning' },
+                ENTREGA_TOTAL: { label: 'Entrega Total', cls: 'badge-success' },
                 CANCELADO: { label: 'Cancelado', cls: 'badge-danger' },
               };
               const st = statusMap[e.status];
