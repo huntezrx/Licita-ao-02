@@ -92,6 +92,7 @@ export default function EmpenhosPage() {
   const { empenhos, addEmpenho, updateEmpenho, deleteEmpenho, updateNFStatus, loadFromDB } = useDemoStore();
   const [tab, setTab] = useState<'empenhos' | 'notas'>('empenhos');
   const [filter, setFilter] = useState<EmpenhoStatus | 'TODOS'>('TODOS');
+  const [mesFiltro, setMesFiltro] = useState<string>('TODOS');
   const [modal, setModal] = useState<{ open: boolean; editing: Empenho | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Empenho, 'id' | 'createdAt'>>(emptyForm);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -103,7 +104,16 @@ export default function EmpenhosPage() {
 
   useEffect(() => { loadFromDB(); }, [loadFromDB]);
 
-  const filtered = filter === 'TODOS' ? empenhos : empenhos.filter(e => e.status === filter);
+  // Meses disponíveis a partir das datas dos empenhos
+  const mesesDisponiveis = Array.from(new Set(
+    empenhos.map(e => e.createdAt?.slice(0, 7)).filter(Boolean)
+  )).sort((a, b) => b.localeCompare(a));
+
+  const filtered = empenhos.filter(e => {
+    const statusOk = filter === 'TODOS' || e.status === filter;
+    const mesOk = mesFiltro === 'TODOS' || e.createdAt?.startsWith(mesFiltro);
+    return statusOk && mesOk;
+  });
   const counts: Record<string, number> = {
     TODOS: empenhos.length,
     PENDENTE: empenhos.filter(e => e.status === 'PENDENTE').length,
@@ -330,16 +340,42 @@ export default function EmpenhosPage() {
             ))}
           </div>
 
-          {/* Filter tabs */}
-          <div className="flex flex-wrap gap-1">
-            {(['TODOS', 'PENDENTE', 'EM_ENTREGA', 'ENTREGA_PARCIAL', 'ENTREGA_TOTAL', 'CANCELADO'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                style={{ background: filter === f ? '#eff6ff' : 'transparent', color: filter === f ? '#1d4ed8' : '#9ca3af', border: filter === f ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent' }}>
-                {f === 'TODOS' ? 'Todos' : STATUS_LABELS[f as EmpenhoStatus]}
-                <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.06)', color: '#6b7280' }}>{counts[f]}</span>
-              </button>
-            ))}
+          {/* Filtros */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Filtro de status */}
+            <div className="flex flex-wrap gap-1">
+              {(['TODOS', 'PENDENTE', 'EM_ENTREGA', 'ENTREGA_PARCIAL', 'ENTREGA_TOTAL', 'CANCELADO'] as const).map(f => (
+                <button key={f} onClick={() => setFilter(f)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                  style={{ background: filter === f ? '#eff6ff' : 'transparent', color: filter === f ? '#1d4ed8' : '#9ca3af', border: filter === f ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent' }}>
+                  {f === 'TODOS' ? 'Todos' : STATUS_LABELS[f as EmpenhoStatus]}
+                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.06)', color: '#6b7280' }}>{counts[f]}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Filtro de mês */}
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-[11px] font-medium" style={{ color: '#9ca3af' }}>Mês:</span>
+              <select
+                value={mesFiltro}
+                onChange={e => setMesFiltro(e.target.value)}
+                className="input-premium text-[12px] py-1.5"
+                style={{ minWidth: 150 }}>
+                <option value="TODOS">Todos os meses</option>
+                {mesesDisponiveis.map(m => {
+                  const [ano, mes] = m.split('-');
+                  const nomeMes = new Date(Number(ano), Number(mes) - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                  return <option key={m} value={m}>{nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}</option>;
+                })}
+              </select>
+              {mesFiltro !== 'TODOS' && (
+                <button onClick={() => setMesFiltro('TODOS')} className="text-[11px] px-2 py-1 rounded-lg transition-colors"
+                  style={{ color: '#dc2626', background: 'rgba(220,38,38,0.06)' }}>
+                  Limpar
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="surface rounded-xl overflow-hidden">
