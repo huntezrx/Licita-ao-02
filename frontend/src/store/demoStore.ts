@@ -139,7 +139,7 @@ export const useDemoStore = create<DemoStore>()(
       },
     }),
     {
-      name: 'ipempreend-data-v1',
+      name: 'licitanex-data-v4',
       partialize: (s) => ({ empenhos: s.empenhos, licitacoes: s.licitacoes }),
       merge: (persisted: unknown, current) => {
         const p = persisted as Partial<typeof current>;
