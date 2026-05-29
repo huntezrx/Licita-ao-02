@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { authService } from '@/services/auth.service';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
@@ -42,25 +41,14 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, user, setUser, logout } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/login');
-      return;
     }
-
-    // Skip backend profile refresh for demo mode
-    if (user?.id === 'demo-001') return;
-
-    authService.getProfile()
-      .then(setUser)
-      .catch(() => {
-        logout();
-        router.replace('/login');
-      });
-  }, [isAuthenticated, user, setUser, logout, router]);
+  }, [isAuthenticated, router]);
 
   if (!isAuthenticated) {
     return (

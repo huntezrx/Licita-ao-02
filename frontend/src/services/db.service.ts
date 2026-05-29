@@ -127,3 +127,24 @@ export const dbLicitacoes = {
     if (error) console.error('[db] delete licitacao:', error.message);
   },
 };
+
+// ─── Storage: NF Files ──────────────────────────────────────────
+
+export const dbStorage = {
+  async uploadNfFile(file: File): Promise<string | null> {
+    if (!supabase) return null;
+    const ext = file.name.split('.').pop();
+    const path = `nf-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from('nf-docs').upload(path, file, { upsert: true });
+    if (error) { console.error('[storage] upload:', error.message); return null; }
+    const { data } = supabase.storage.from('nf-docs').getPublicUrl(path);
+    return data.publicUrl;
+  },
+
+  async deleteNfFile(url: string): Promise<void> {
+    if (!supabase) return;
+    const path = url.split('/nf-docs/').pop();
+    if (!path) return;
+    await supabase.storage.from('nf-docs').remove([path]);
+  },
+};

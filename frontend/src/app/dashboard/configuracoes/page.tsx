@@ -1,26 +1,52 @@
 'use client';
 
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export default function ConfiguracoesPage() {
   const { user } = useAuthStore();
   const [saved, setSaved] = useState(false);
   const [profile, setProfile] = useState({
-    name: user?.name || 'Administrador Demo',
-    email: user?.email || 'admin@licitanex.com.br',
-    phone: '(11) 99999-0000',
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: '',
     cargo: 'Administrador do Sistema',
-    empresa: 'Empresa Licitante LTDA',
+    empresa: 'Impacta Empreendimentos',
   });
   const [notifs, setNotifs] = useState({ email: true, empenhosPendentes: true, novasLicitacoes: true, vencimentos: false });
+  const [pwForm, setPwForm] = useState({ novo: '', confirmar: '' });
+  const [showPw, setShowPw] = useState({ novo: false, confirmar: false });
+  const [pwLoading, setPwLoading] = useState(false);
 
   function handleSave() {
     setSaved(true);
     toast.success('Configurações salvas');
     setTimeout(() => setSaved(false), 2500);
+  }
+
+  async function handleChangePassword() {
+    if (!pwForm.novo || pwForm.novo.length < 6) {
+      toast.error('A nova senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    if (pwForm.novo !== pwForm.confirmar) {
+      toast.error('As senhas não coincidem');
+      return;
+    }
+    if (!supabase) { toast.error('Banco não configurado'); return; }
+    setPwLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: pwForm.novo });
+    setPwLoading(false);
+    if (error) {
+      toast.error(error.message === 'New password should be different from the old password.'
+        ? 'A nova senha deve ser diferente da atual' : error.message);
+    } else {
+      toast.success('Senha alterada com sucesso!');
+      setPwForm({ novo: '', confirmar: '' });
+    }
   }
 
   const inputCls = 'input-premium';
@@ -82,26 +108,39 @@ export default function ConfiguracoesPage() {
         </div>
       </Section>
 
-      <Section title="Segurança">
-        <div className="space-y-2">
-          {[
-            { label: 'Alterar Senha', desc: 'Última alteração: nunca' },
-            { label: 'Autenticação 2FA', desc: 'Adicione uma camada extra de segurança' },
-          ].map(item => (
-            <div key={item.label} className="flex items-center justify-between py-2.5 px-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div>
-                <p className="text-sm font-medium" style={{ color: '#d4d4d8' }}>{item.label}</p>
-                <p className="text-[11px]" style={{ color: '#44444f' }}>{item.desc}</p>
+      <Section title="Alterar Senha">
+        <div className="space-y-3">
+          {([
+            { key: 'novo' as const, label: 'Nova senha' },
+            { key: 'confirmar' as const, label: 'Confirmar nova senha' },
+          ]).map(({ key, label }) => (
+            <div key={key}>
+              <label className="block text-[11px] font-medium mb-1.5" style={{ color: '#7f7f8c' }}>{label}</label>
+              <div className="relative">
+                <input
+                  type={showPw[key] ? 'text' : 'password'}
+                  value={pwForm[key]}
+                  onChange={e => setPwForm(p => ({ ...p, [key]: e.target.value }))}
+                  className={inputCls + ' pr-10'}
+                  placeholder="••••••••"
+                />
+                <button type="button" onClick={() => setShowPw(s => ({ ...s, [key]: !s[key] }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#9ca3af' }}>
+                  {showPw[key] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
               </div>
-              <button onClick={() => toast.info('Disponível com backend')} className="btn-ghost text-[12px] py-1.5 px-3">Configurar</button>
             </div>
           ))}
+          <button onClick={handleChangePassword} disabled={pwLoading || !pwForm.novo || !pwForm.confirmar}
+            className="flex items-center gap-2 btn-primary" style={{ padding: '8px 16px' }}>
+            {pwLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Alterando...</> : 'Alterar Senha'}
+          </button>
         </div>
       </Section>
 
-      <Section title="Sistema">
+      <Section title="Informações do Sistema">
         <div className="space-y-2">
-          {[['Versão', '1.0.0 Demo'], ['Modo', 'Demonstração'], ['Papel', user?.role || 'SUPER_ADMIN'], ['Dados', 'LocalStorage']].map(([k, v]) => (
+          {[['Versão', '1.0.0'], ['Empresa', 'Impacta Empreendimentos'], ['Usuário', user?.email || ''], ['Banco de dados', 'Supabase (Online)']].map(([k, v]) => (
             <div key={k} className="flex justify-between text-sm py-1">
               <span style={{ color: '#44444f' }}>{k}</span>
               <span style={{ color: '#7f7f8c' }}>{v}</span>
@@ -110,9 +149,7 @@ export default function ConfiguracoesPage() {
         </div>
       </Section>
 
-      <button onClick={handleSave}
-        className="flex items-center gap-2 btn-primary"
-        style={{ padding: '9px 20px' }}>
+      <button onClick={handleSave} className="flex items-center gap-2 btn-primary" style={{ padding: '9px 20px' }}>
         {saved && <Check className="w-3.5 h-3.5" />}
         {saved ? 'Salvo!' : 'Salvar Configurações'}
       </button>

@@ -10,6 +10,7 @@ const nextConfig = {
   images: {
     domains: [
       'localhost',
+      'fxhulvfaegqsipnuqhlf.supabase.co',
       'licitacao-documents.s3.sa-east-1.amazonaws.com',
       'licitacao-documents.s3.amazonaws.com',
       'avatars.githubusercontent.com',

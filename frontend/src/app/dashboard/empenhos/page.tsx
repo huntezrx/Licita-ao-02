@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, X, AlertTriangle, Download, ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, AlertTriangle, Download, ChevronDown, ChevronRight, FileText, Upload, ExternalLink, Loader2 } from 'lucide-react';
 import { useDemoStore, Empenho, EmpenhoItem, EmpenhoStatus, NfStatus } from '@/store/demoStore';
+import { dbStorage } from '@/services/db.service';
+import { toast } from 'sonner';
 
 function fmt(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }); }
 function fmtFull(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
@@ -94,6 +96,10 @@ export default function EmpenhosPage() {
   const [form, setForm] = useState<Omit<Empenho, 'id' | 'createdAt'>>(emptyForm);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [nfExpanded, setNfExpanded] = useState<Set<string>>(new Set());
+  const [nfModal, setNfModal] = useState(false);
+  const [nfForm, setNfForm] = useState({ empenhoId: '', nfNumero: '', valorNf: 0, dataEntrega: '', status: 'AGUARDANDO_PAGAMENTO' as NfStatus, dataPagamento: '' });
+  const [nfFile, setNfFile] = useState<File | null>(null);
+  const [nfUploading, setNfUploading] = useState(false);
 
   useEffect(() => { loadFromDB(); }, [loadFromDB]);
 
@@ -135,6 +141,37 @@ export default function EmpenhosPage() {
     setForm(f => ({ ...f, itens: f.itens.map((it, i) => i === idx ? { ...it, [field]: value } : it) }));
   }
   function removeItem(idx: number) { setForm(f => ({ ...f, itens: f.itens.filter((_, i) => i !== idx) })); }
+
+  async function handleSaveNF() {
+    if (!nfForm.empenhoId || !nfForm.nfNumero) {
+      toast.error('Selecione um empenho e informe o número da NF');
+      return;
+    }
+    setNfUploading(true);
+    let arquivoUrl = '';
+    if (nfFile) {
+      const url = await dbStorage.uploadNfFile(nfFile);
+      if (url) arquivoUrl = url;
+      else toast.error('Erro ao fazer upload do arquivo, mas NF será salva sem arquivo');
+    }
+    const empenho = empenhos.find(e => e.id === nfForm.empenhoId);
+    if (!empenho) { setNfUploading(false); return; }
+    const updatedItens = empenho.itens.map(it => ({
+      ...it,
+      nf: it.nf || nfForm.nfNumero,
+      valorNf: it.valorNf || nfForm.valorNf,
+      dataEntregaNf: it.dataEntregaNf || nfForm.dataEntrega,
+      nfStatus: nfForm.status,
+      nfDataPagamento: nfForm.dataPagamento,
+      nfArquivo: arquivoUrl || it.nfArquivo,
+    }));
+    updateEmpenho(nfForm.empenhoId, { itens: updatedItens });
+    setNfUploading(false);
+    setNfModal(false);
+    setNfForm({ empenhoId: '', nfNumero: '', valorNf: 0, dataEntrega: '', status: 'AGUARDANDO_PAGAMENTO', dataPagamento: '' });
+    setNfFile(null);
+    toast.success('Nota Fiscal salva com sucesso!');
+  }
 
   function exportCSV() {
     const headers = ['Nº Empenho', 'Fornecedor', 'Órgão', 'Status', 'Resp. Compra', 'Resp. Entrega', 'Item #', 'Descrição', 'Und', 'Marca', 'Qtd', 'Vlr Venda', 'Total Venda', 'Qtd Entregue', 'Falta Entregar', 'Vlr Custo', 'Total Custo', 'NF', 'Valor NF', 'Data Entrega NF', 'Status NF', 'Data Pagamento', 'Criado em'];
@@ -352,6 +389,9 @@ export default function EmpenhosPage() {
                 <p className="text-sm font-semibold" style={{ color: '#111827' }}>Notas Fiscais</p>
                 <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.05)', color: '#6b7280' }}>{nfGroups.length} NFs</span>
               </div>
+              <button onClick={() => setNfModal(true)} className="btn-primary flex items-center gap-1.5 text-[12px] py-1.5 px-3">
+                <Plus className="w-3.5 h-3.5" /> Nova NF
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full table-premium">
@@ -413,13 +453,20 @@ export default function EmpenhosPage() {
                           />
                         </td>
                         <td>
-                          <input
-                            value={g.nfArquivo}
-                            onChange={ev => updateNFStatus(g.empenhoId, g.nfNumero, { nfArquivo: ev.target.value })}
-                            className="input-premium text-[12px]"
-                            style={{ width: 160 }}
-                            placeholder="Nome do arquivo..."
-                          />
+                          {g.nfArquivo && g.nfArquivo.startsWith('http') ? (
+                            <a href={g.nfArquivo} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[12px] font-medium" style={{ color: '#2563eb' }}>
+                              <ExternalLink className="w-3 h-3" /> Ver arquivo
+                            </a>
+                          ) : (
+                            <input
+                              value={g.nfArquivo}
+                              onChange={ev => updateNFStatus(g.empenhoId, g.nfNumero, { nfArquivo: ev.target.value })}
+                              className="input-premium text-[12px]"
+                              style={{ width: 160 }}
+                              placeholder="Nome do arquivo..."
+                            />
+                          )}
                         </td>
                       </tr>,
                       isExp && (
@@ -482,6 +529,73 @@ export default function EmpenhosPage() {
             <div className="flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#fafafa' }}>
               <span className="text-[12px]" style={{ color: '#9ca3af' }}>Soma total das notas aguardando pagamento</span>
               <span className="text-sm font-semibold tabular-nums" style={{ color: '#d97706' }}>{fmt(totalAguardando)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nova NF */}
+      {nfModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-lg rounded-2xl" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+              <h2 className="text-sm font-semibold" style={{ color: '#111827' }}>Nova Nota Fiscal</h2>
+              <button onClick={() => setNfModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" style={{ color: '#6b7280' }} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Empenho</label>
+                <select value={nfForm.empenhoId} onChange={e => setNfForm(f => ({ ...f, empenhoId: e.target.value }))} className="input-premium select">
+                  <option value="">Selecione um empenho...</option>
+                  {empenhos.map(e => <option key={e.id} value={e.id}>{e.numero} — {e.fornecedor}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Número da NF</label>
+                  <input value={nfForm.nfNumero} onChange={e => setNfForm(f => ({ ...f, nfNumero: e.target.value }))} className="input-premium" placeholder="NF-000000" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Valor da NF (R$)</label>
+                  <input type="number" step="0.01" value={nfForm.valorNf} onChange={e => setNfForm(f => ({ ...f, valorNf: parseFloat(e.target.value) || 0 }))} className="input-premium" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Data de Entrega</label>
+                  <input type="date" value={nfForm.dataEntrega} onChange={e => setNfForm(f => ({ ...f, dataEntrega: e.target.value }))} className="input-premium" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Status</label>
+                  <select value={nfForm.status} onChange={e => setNfForm(f => ({ ...f, status: e.target.value as NfStatus }))} className="input-premium select">
+                    <option value="AGUARDANDO_PAGAMENTO">Aguardando Pagamento</option>
+                    <option value="PAGAMENTO_EFETUADO">Pagamento Efetuado</option>
+                    <option value="NOTA_CANCELADA">Nota Cancelada</option>
+                  </select>
+                </div>
+                {nfForm.status === 'PAGAMENTO_EFETUADO' && (
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Data do Pagamento</label>
+                    <input type="date" value={nfForm.dataPagamento} onChange={e => setNfForm(f => ({ ...f, dataPagamento: e.target.value }))} className="input-premium" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Arquivo / Documento da NF</label>
+                <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-dashed transition-colors"
+                  style={{ borderColor: nfFile ? '#2563eb' : 'rgba(0,0,0,0.15)', background: nfFile ? 'rgba(37,99,235,0.04)' : 'transparent' }}>
+                  <Upload className="w-4 h-4 flex-shrink-0" style={{ color: nfFile ? '#2563eb' : '#9ca3af' }} />
+                  <span className="text-[12px] truncate" style={{ color: nfFile ? '#2563eb' : '#9ca3af' }}>
+                    {nfFile ? nfFile.name : 'Clique para selecionar PDF, XML, imagem...'}
+                  </span>
+                  <input type="file" className="hidden" accept=".pdf,.xml,.jpg,.jpeg,.png,.webp"
+                    onChange={e => setNfFile(e.target.files?.[0] ?? null)} />
+                </label>
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+              <button onClick={() => { setNfModal(false); setNfFile(null); }} className="btn-ghost flex-1">Cancelar</button>
+              <button onClick={handleSaveNF} disabled={nfUploading} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                {nfUploading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</> : 'Salvar NF'}
+              </button>
             </div>
           </div>
         </div>

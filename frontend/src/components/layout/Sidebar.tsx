@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, FileText, FileSignature, DollarSign, BarChart2, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -38,28 +39,22 @@ export function Sidebar() {
       style={{ background: '#0c0c10', borderRight: '1px solid rgba(255,255,255,0.05)' }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-3.5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0"
-          style={{ background: '#161620', border: '1px solid rgba(59,130,246,0.2)' }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1" fill="#3b82f6" opacity="0.9"/>
-            <rect x="8" y="1.5" width="4.5" height="4.5" rx="1" fill="#3b82f6" opacity="0.45"/>
-            <rect x="1.5" y="8" width="4.5" height="4.5" rx="1" fill="#3b82f6" opacity="0.45"/>
-            <rect x="8" y="8" width="4.5" height="4.5" rx="1" fill="#3b82f6" opacity="0.2"/>
-          </svg>
+      <div className="flex items-center gap-2.5 px-3 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 overflow-hidden bg-white">
+          <Image src="/logo-icon.png" alt="Impacta" width={32} height={32} style={{ objectFit: 'contain' }} />
         </div>
         <AnimatePresence>
           {!sidebarCollapsed && (
-            <motion.span
+            <motion.div
               initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -6 }}
               transition={{ duration: 0.15 }}
-              className="text-[13px] font-semibold whitespace-nowrap overflow-hidden"
-              style={{ color: '#f0f0f2', letterSpacing: '-0.01em' }}
+              className="overflow-hidden"
             >
-              LicitaNex
-            </motion.span>
+              <p className="text-[12px] font-bold whitespace-nowrap leading-tight" style={{ color: '#f0f0f2' }}>IMPACTA</p>
+              <p className="text-[9px] whitespace-nowrap" style={{ color: '#44444f', letterSpacing: '0.06em' }}>EMPREENDIMENTOS</p>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
