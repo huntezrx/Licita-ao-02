@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { Empenho, EmpenhoItem, Licitacao } from '@/store/demoStore';
+import type { Empenho, EmpenhoItem, Licitacao, NotaFiscal } from '@/store/demoStore';
 
 // ─── Mappers: camelCase ↔ snake_case ────────────────────────────
 
@@ -125,6 +125,69 @@ export const dbLicitacoes = {
     if (!supabase) return;
     const { error } = await supabase.from('licitacoes').delete().eq('id', id);
     if (error) console.error('[db] delete licitacao:', error.message);
+  },
+};
+
+// ─── Notas Fiscais (independentes) ──────────────────────────────
+
+function nfToRow(nf: NotaFiscal) {
+  return {
+    id: nf.id,
+    numero_nf: nf.numeroNf,
+    numero_empenho: nf.numeroEmpenho,
+    fornecedor: nf.fornecedor,
+    orgao: nf.orgao,
+    valor: nf.valor,
+    data_entrega: nf.dataEntrega || null,
+    status: nf.status,
+    data_pagamento: nf.dataPagamento || null,
+    arquivos: nf.arquivos,
+    observacao: nf.observacao,
+    created_at: nf.createdAt,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToNf(r: any): NotaFiscal {
+  return {
+    id: r.id,
+    numeroNf: r.numero_nf || '',
+    numeroEmpenho: r.numero_empenho || '',
+    fornecedor: r.fornecedor || '',
+    orgao: r.orgao || '',
+    valor: Number(r.valor) || 0,
+    dataEntrega: r.data_entrega || '',
+    status: r.status || 'AGUARDANDO_PAGAMENTO',
+    dataPagamento: r.data_pagamento || '',
+    arquivos: Array.isArray(r.arquivos) ? r.arquivos : [],
+    observacao: r.observacao || '',
+    createdAt: r.created_at || '',
+  };
+}
+
+export const dbNotasFiscais = {
+  async getAll(): Promise<NotaFiscal[] | null> {
+    if (!supabase) return null;
+    const { data, error } = await supabase
+      .from('notas_fiscais')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) { console.error('[db] getAll notas_fiscais:', error.message); return null; }
+    return data.map(rowToNf);
+  },
+
+  async upsert(nf: NotaFiscal): Promise<void> {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('notas_fiscais')
+      .upsert(nfToRow(nf), { onConflict: 'id' });
+    if (error) console.error('[db] upsert nota_fiscal:', error.message);
+  },
+
+  async delete(id: string): Promise<void> {
+    if (!supabase) return;
+    const { error } = await supabase.from('notas_fiscais').delete().eq('id', id);
+    if (error) console.error('[db] delete nota_fiscal:', error.message);
   },
 };
 

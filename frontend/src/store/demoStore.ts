@@ -1,7 +1,7 @@
 'use client';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { dbEmpenhos, dbLicitacoes } from '@/services/db.service';
+import { dbEmpenhos, dbLicitacoes, dbNotasFiscais } from '@/services/db.service';
 
 export type EmpenhoStatus = 'PENDENTE' | 'EM_ENTREGA' | 'ENTREGA_PARCIAL' | 'ENTREGA_TOTAL' | 'CANCELADO';
 export type NfStatus = 'AGUARDANDO_PAGAMENTO' | 'PAGAMENTO_EFETUADO' | 'NOTA_CANCELADA';
@@ -38,6 +38,21 @@ export interface Empenho {
   createdAt: string;
 }
 
+export interface NotaFiscal {
+  id: string;
+  numeroNf: string;
+  numeroEmpenho: string;
+  fornecedor: string;
+  orgao: string;
+  valor: number;
+  dataEntrega: string;
+  status: NfStatus;
+  dataPagamento: string;
+  arquivos: string[];
+  observacao: string;
+  createdAt: string;
+}
+
 export interface Licitacao {
   id: string;
   numero: string;
@@ -53,13 +68,10 @@ export interface Licitacao {
   createdAt: string;
 }
 
-const initialEmpenhos: Empenho[] = [];
-
-const initialLicitacoes: Licitacao[] = [];
-
 interface DemoStore {
   empenhos: Empenho[];
   licitacoes: Licitacao[];
+  notasFiscais: NotaFiscal[];
   dbLoaded: boolean;
   addEmpenho: (e: Omit<Empenho, 'id' | 'createdAt'>) => void;
   updateEmpenho: (id: string, e: Partial<Empenho>) => void;
@@ -68,23 +80,33 @@ interface DemoStore {
   addLicitacao: (l: Omit<Licitacao, 'id' | 'createdAt'>) => void;
   updateLicitacao: (id: string, l: Partial<Licitacao>) => void;
   deleteLicitacao: (id: string) => void;
+  addNotaFiscal: (nf: Omit<NotaFiscal, 'id' | 'createdAt'>) => void;
+  updateNotaFiscal: (id: string, nf: Partial<NotaFiscal>) => void;
+  deleteNotaFiscal: (id: string) => void;
   loadFromDB: () => Promise<void>;
 }
 
 export const useDemoStore = create<DemoStore>()(
   persist(
     (set, get) => ({
-      empenhos: initialEmpenhos,
-      licitacoes: initialLicitacoes,
+      empenhos: [],
+      licitacoes: [],
+      notasFiscais: [],
       dbLoaded: false,
 
       loadFromDB: async () => {
-        const [empenhos, licitacoes] = await Promise.all([
+        const [empenhos, licitacoes, notasFiscais] = await Promise.all([
           dbEmpenhos.getAll(),
           dbLicitacoes.getAll(),
+          dbNotasFiscais.getAll(),
         ]);
         if (empenhos !== null && licitacoes !== null) {
-          set({ empenhos, licitacoes, dbLoaded: true });
+          set({
+            empenhos,
+            licitacoes,
+            notasFiscais: notasFiscais ?? [],
+            dbLoaded: true,
+          });
         }
       },
 
@@ -109,12 +131,7 @@ export const useDemoStore = create<DemoStore>()(
         set((s) => ({
           empenhos: s.empenhos.map((e) => {
             if (e.id !== empenhoId) return e;
-            return {
-              ...e,
-              itens: e.itens.map((it) =>
-                it.nf === nfNumero ? { ...it, ...updates } : it
-              ),
-            };
+            return { ...e, itens: e.itens.map((it) => it.nf === nfNumero ? { ...it, ...updates } : it) };
           }),
         }));
         const updated = get().empenhos.find((x) => x.id === empenhoId);
@@ -137,10 +154,27 @@ export const useDemoStore = create<DemoStore>()(
         set((s) => ({ licitacoes: s.licitacoes.filter((x) => x.id !== id) }));
         dbLicitacoes.delete(id);
       },
+
+      addNotaFiscal: (nf) => {
+        const nova: NotaFiscal = { ...nf, id: Date.now().toString(), createdAt: new Date().toISOString().split('T')[0] };
+        set((s) => ({ notasFiscais: [nova, ...s.notasFiscais] }));
+        dbNotasFiscais.upsert(nova);
+      },
+
+      updateNotaFiscal: (id, nf) => {
+        set((s) => ({ notasFiscais: s.notasFiscais.map((x) => x.id === id ? { ...x, ...nf } : x) }));
+        const updated = get().notasFiscais.find((x) => x.id === id);
+        if (updated) dbNotasFiscais.upsert(updated);
+      },
+
+      deleteNotaFiscal: (id) => {
+        set((s) => ({ notasFiscais: s.notasFiscais.filter((x) => x.id !== id) }));
+        dbNotasFiscais.delete(id);
+      },
     }),
     {
       name: 'licitanex-data-v4',
-      partialize: (s) => ({ empenhos: s.empenhos, licitacoes: s.licitacoes }),
+      partialize: (s) => ({ empenhos: s.empenhos, licitacoes: s.licitacoes, notasFiscais: s.notasFiscais }),
       merge: (persisted: unknown, current) => {
         const p = persisted as Partial<typeof current>;
         const empenhos = (p.empenhos ?? current.empenhos).map((e: Empenho) => ({
@@ -154,7 +188,7 @@ export const useDemoStore = create<DemoStore>()(
           fornecedor: e.fornecedor ?? '',
           orgao: e.orgao ?? '',
         }));
-        return { ...current, ...p, empenhos };
+        return { ...current, ...p, empenhos, notasFiscais: p.notasFiscais ?? [] };
       },
     }
   )

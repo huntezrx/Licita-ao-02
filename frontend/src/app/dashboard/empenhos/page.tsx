@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, X, AlertTriangle, Download, ChevronDown, ChevronRight, FileText, Upload, ExternalLink, Loader2 } from 'lucide-react';
-import { useDemoStore, Empenho, EmpenhoItem, EmpenhoStatus, NfStatus } from '@/store/demoStore';
+import { useDemoStore, Empenho, EmpenhoItem, EmpenhoStatus, NfStatus, NotaFiscal } from '@/store/demoStore';
 import { dbStorage } from '@/services/db.service';
 import { toast } from 'sonner';
 
@@ -36,7 +36,7 @@ const STATUS_BADGE: Record<EmpenhoStatus, string> = {
   PENDENTE: 'badge-warning', EM_ENTREGA: 'badge-blue',
   ENTREGA_PARCIAL: 'badge-warning', ENTREGA_TOTAL: 'badge-success', CANCELADO: 'badge-danger',
 };
-const NF_STATUS_LABELS: Record<NfStatus, string> = {
+const NF_STATUS_LABELS_MAP: Record<NfStatus, string> = {
   AGUARDANDO_PAGAMENTO: 'Aguardando Pagamento',
   PAGAMENTO_EFETUADO: 'Pagamento Efetuado',
   NOTA_CANCELADA: 'Nota Cancelada',
@@ -87,6 +87,303 @@ function buildNFGroups(empenhos: Empenho[]): NFGroup[] {
   return groups.filter(g => g.nfNumero); // only groups with a NF number
 }
 
+// ─── Notas Fiscais (aba independente) ──────────────────────────
+
+const emptyNf = (): Omit<NotaFiscal, 'id' | 'createdAt'> => ({
+  numeroNf: '', numeroEmpenho: '', fornecedor: '', orgao: '',
+  valor: 0, dataEntrega: '', status: 'AGUARDANDO_PAGAMENTO',
+  dataPagamento: '', arquivos: [], observacao: '',
+});
+
+function NotasFiscaisTab() {
+  const { notasFiscais, addNotaFiscal, updateNotaFiscal, deleteNotaFiscal } = useDemoStore();
+  const [modal, setModal] = useState<{ open: boolean; editing: NotaFiscal | null }>({ open: false, editing: null });
+  const [form, setForm] = useState(emptyNf());
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const totalAguardando = notasFiscais
+    .filter(n => n.status === 'AGUARDANDO_PAGAMENTO')
+    .reduce((s, n) => s + n.valor, 0);
+
+  function openAdd() { setForm(emptyNf()); setFiles([]); setModal({ open: true, editing: null }); }
+  function openEdit(nf: NotaFiscal) {
+    setForm({ numeroNf: nf.numeroNf, numeroEmpenho: nf.numeroEmpenho, fornecedor: nf.fornecedor, orgao: nf.orgao, valor: nf.valor, dataEntrega: nf.dataEntrega, status: nf.status, dataPagamento: nf.dataPagamento, arquivos: nf.arquivos, observacao: nf.observacao });
+    setFiles([]);
+    setModal({ open: true, editing: nf });
+  }
+
+  async function handleSave() {
+    if (!form.numeroNf) { toast.error('Informe o número da NF'); return; }
+    setUploading(true);
+    const novosUrls: string[] = [];
+    for (const file of files) {
+      const url = await dbStorage.uploadNfFile(file);
+      if (url) novosUrls.push(url);
+    }
+    const arquivosFinais = [...(form.arquivos || []), ...novosUrls];
+    if (modal.editing) {
+      updateNotaFiscal(modal.editing.id, { ...form, arquivos: arquivosFinais });
+      toast.success('NF atualizada!');
+    } else {
+      addNotaFiscal({ ...form, arquivos: arquivosFinais });
+      toast.success('NF cadastrada!');
+    }
+    setUploading(false);
+    setModal({ open: false, editing: null });
+  }
+
+  function removeArquivo(url: string) {
+    setForm(f => ({ ...f, arquivos: f.arquivos.filter(a => a !== url) }));
+    if (modal.editing) updateNotaFiscal(modal.editing.id, { arquivos: form.arquivos.filter(a => a !== url) });
+  }
+
+  const statusColor = (s: NfStatus) =>
+    s === 'PAGAMENTO_EFETUADO' ? { bg: 'rgba(22,163,74,0.1)', color: '#16a34a' }
+    : s === 'NOTA_CANCELADA' ? { bg: 'rgba(220,38,38,0.1)', color: '#dc2626' }
+    : { bg: 'rgba(217,119,6,0.1)', color: '#d97706' };
+
+  return (
+    <div className="space-y-4">
+      <div className="surface rounded-xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4" style={{ color: '#2563eb' }} />
+            <p className="text-sm font-semibold" style={{ color: '#111827' }}>Notas Fiscais</p>
+            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.05)', color: '#6b7280' }}>{notasFiscais.length} NFs</span>
+          </div>
+          <button onClick={openAdd} className="btn-primary flex items-center gap-1.5 text-[12px] py-1.5 px-3">
+            <Plus className="w-3.5 h-3.5" /> Nova NF
+          </button>
+        </div>
+
+        {/* Tabela */}
+        <div className="overflow-x-auto">
+          <table className="w-full table-premium">
+            <thead>
+              <tr>
+                <th>Nota Fiscal</th>
+                <th>Nº Empenho</th>
+                <th>Fornecedor</th>
+                <th>Órgão</th>
+                <th>Valor</th>
+                <th>Data Entrega</th>
+                <th>Status</th>
+                <th>Data Pagamento</th>
+                <th>Arquivos</th>
+                <th>Observação</th>
+                <th style={{ width: 72 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {notasFiscais.map(nf => {
+                const sc = statusColor(nf.status);
+                return (
+                  <tr key={nf.id} className="group">
+                    <td><span className="font-mono text-[12px] font-semibold" style={{ color: '#2563eb' }}>{nf.numeroNf}</span></td>
+                    <td>
+                      <input value={nf.numeroEmpenho} onChange={e => updateNotaFiscal(nf.id, { numeroEmpenho: e.target.value })}
+                        className="input-premium text-[12px]" style={{ width: 130 }} placeholder="Nº Empenho" />
+                    </td>
+                    <td>
+                      <input value={nf.fornecedor} onChange={e => updateNotaFiscal(nf.id, { fornecedor: e.target.value })}
+                        className="input-premium text-[12px]" style={{ minWidth: 140 }} placeholder="Fornecedor" />
+                    </td>
+                    <td>
+                      <input value={nf.orgao} onChange={e => updateNotaFiscal(nf.id, { orgao: e.target.value })}
+                        className="input-premium text-[12px]" style={{ minWidth: 130 }} placeholder="Órgão" />
+                    </td>
+                    <td>
+                      <input type="number" step="0.01" value={nf.valor} onChange={e => updateNotaFiscal(nf.id, { valor: parseFloat(e.target.value) || 0 })}
+                        className="input-premium text-[12px] tabular-nums" style={{ width: 110 }} />
+                    </td>
+                    <td>
+                      <input type="date" value={nf.dataEntrega} onChange={e => updateNotaFiscal(nf.id, { dataEntrega: e.target.value })}
+                        className="input-premium text-[12px]" style={{ width: 130 }} />
+                    </td>
+                    <td>
+                      <select value={nf.status} onChange={e => updateNotaFiscal(nf.id, { status: e.target.value as NfStatus })}
+                        className="text-[11px] font-medium rounded-full px-2 py-0.5 border-0 cursor-pointer"
+                        style={{ background: sc.bg, color: sc.color }}>
+                        {(Object.keys(NF_STATUS_LABELS_MAP) as NfStatus[]).map(k => (
+                          <option key={k} value={k}>{NF_STATUS_LABELS_MAP[k]}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input type="date" value={nf.dataPagamento} onChange={e => updateNotaFiscal(nf.id, { dataPagamento: e.target.value })}
+                        className="input-premium text-[12px]" style={{ width: 130 }} />
+                    </td>
+                    <td>
+                      <div className="flex flex-wrap gap-1 items-center">
+                        {nf.arquivos.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-0.5 text-[11px] font-medium px-1.5 py-0.5 rounded"
+                            style={{ background: 'rgba(37,99,235,0.08)', color: '#2563eb' }}>
+                            <ExternalLink className="w-2.5 h-2.5" /> Arq {i + 1}
+                          </a>
+                        ))}
+                        {/* Upload inline */}
+                        <label className="flex items-center gap-0.5 text-[11px] cursor-pointer px-1.5 py-0.5 rounded transition-colors"
+                          style={{ background: 'rgba(0,0,0,0.04)', color: '#9ca3af' }}
+                          title="Adicionar arquivo">
+                          <Upload className="w-2.5 h-2.5" /> +
+                          <input type="file" className="hidden" accept=".pdf,.xml,.jpg,.jpeg,.png,.webp" multiple
+                            onChange={async e => {
+                              const picked = Array.from(e.target.files ?? []);
+                              if (!picked.length) return;
+                              const urls: string[] = [];
+                              for (const f of picked) { const u = await dbStorage.uploadNfFile(f); if (u) urls.push(u); }
+                              updateNotaFiscal(nf.id, { arquivos: [...nf.arquivos, ...urls] });
+                              toast.success(`${urls.length} arquivo(s) adicionado(s)`);
+                            }} />
+                        </label>
+                      </div>
+                    </td>
+                    <td>
+                      <input value={nf.observacao} onChange={e => updateNotaFiscal(nf.id, { observacao: e.target.value })}
+                        className="input-premium text-[12px]" style={{ minWidth: 120 }} placeholder="Observação..." />
+                    </td>
+                    <td>
+                      <div className="flex gap-1">
+                        <button onClick={() => openEdit(nf)} className="p-1.5 rounded-md hover:bg-gray-100">
+                          <Pencil className="w-3 h-3" style={{ color: '#6b7280' }} />
+                        </button>
+                        <button onClick={() => { if (window.confirm(`Excluir NF ${nf.numeroNf}?`)) deleteNotaFiscal(nf.id); }}
+                          className="p-1.5 rounded-md hover:bg-red-50">
+                          <Trash2 className="w-3 h-3" style={{ color: '#dc2626' }} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {notasFiscais.length === 0 && (
+                <tr>
+                  <td colSpan={11} className="py-12 text-center text-[13px]" style={{ color: '#9ca3af' }}>
+                    Nenhuma nota fiscal cadastrada. Clique em &quot;Nova NF&quot; para adicionar.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Rodapé totais */}
+        <div className="flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#fafafa' }}>
+          <span className="text-[12px]" style={{ color: '#9ca3af' }}>Total aguardando pagamento</span>
+          <span className="text-sm font-semibold tabular-nums" style={{ color: '#d97706' }}>
+            {totalAguardando.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        </div>
+      </div>
+
+      {/* Modal Nova / Editar NF */}
+      {modal.open && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-2xl" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+              <h2 className="text-sm font-semibold" style={{ color: '#111827' }}>{modal.editing ? 'Editar Nota Fiscal' : 'Nova Nota Fiscal'}</h2>
+              <button onClick={() => setModal({ open: false, editing: null })} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" style={{ color: '#6b7280' }} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Número da NF *</label>
+                  <input value={form.numeroNf} onChange={e => setForm(f => ({ ...f, numeroNf: e.target.value }))} className="input-premium" placeholder="NF-000000" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Nº do Empenho</label>
+                  <input value={form.numeroEmpenho} onChange={e => setForm(f => ({ ...f, numeroEmpenho: e.target.value }))} className="input-premium" placeholder="2026NE000001" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Fornecedor</label>
+                  <input value={form.fornecedor} onChange={e => setForm(f => ({ ...f, fornecedor: e.target.value }))} className="input-premium" placeholder="Razão social" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Órgão</label>
+                  <input value={form.orgao} onChange={e => setForm(f => ({ ...f, orgao: e.target.value }))} className="input-premium" placeholder="Órgão" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Valor (R$)</label>
+                  <input type="number" step="0.01" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: parseFloat(e.target.value) || 0 }))} className="input-premium" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Data de Entrega</label>
+                  <input type="date" value={form.dataEntrega} onChange={e => setForm(f => ({ ...f, dataEntrega: e.target.value }))} className="input-premium" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Status</label>
+                  <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as NfStatus }))} className="input-premium select">
+                    {(Object.keys(NF_STATUS_LABELS_MAP) as NfStatus[]).map(k => <option key={k} value={k}>{NF_STATUS_LABELS_MAP[k]}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Data de Pagamento</label>
+                  <input type="date" value={form.dataPagamento} onChange={e => setForm(f => ({ ...f, dataPagamento: e.target.value }))} className="input-premium" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Observação</label>
+                  <input value={form.observacao} onChange={e => setForm(f => ({ ...f, observacao: e.target.value }))} className="input-premium" placeholder="Observações..." />
+                </div>
+              </div>
+
+              {/* Arquivos já salvos */}
+              {form.arquivos.length > 0 && (
+                <div>
+                  <label className="block text-[11px] font-medium mb-2" style={{ color: '#6b7280' }}>Arquivos salvos</label>
+                  <div className="flex flex-wrap gap-2">
+                    {form.arquivos.map((url, i) => (
+                      <div key={i} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px]"
+                        style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}>
+                        <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>Arquivo {i + 1}</a>
+                        <button onClick={() => removeArquivo(url)} className="ml-1" style={{ color: '#dc2626' }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Upload novos arquivos */}
+              <div>
+                <label className="block text-[11px] font-medium mb-2" style={{ color: '#6b7280' }}>
+                  Adicionar arquivos <span style={{ color: '#9ca3af' }}>(pode selecionar vários de uma vez)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer px-3 py-2.5 rounded-lg border border-dashed transition-colors"
+                  style={{ borderColor: files.length > 0 ? '#2563eb' : 'rgba(0,0,0,0.15)', background: files.length > 0 ? 'rgba(37,99,235,0.04)' : 'transparent' }}>
+                  <Upload className="w-4 h-4 flex-shrink-0" style={{ color: files.length > 0 ? '#2563eb' : '#9ca3af' }} />
+                  <span className="text-[12px]" style={{ color: files.length > 0 ? '#2563eb' : '#9ca3af' }}>
+                    {files.length > 0 ? `${files.length} arquivo(s) selecionado(s)` : 'Clique para selecionar PDF, XML, imagem... (múltiplos permitidos)'}
+                  </span>
+                  <input type="file" className="hidden" accept=".pdf,.xml,.jpg,.jpeg,.png,.webp" multiple
+                    onChange={e => setFiles(Array.from(e.target.files ?? []))} />
+                </label>
+                {files.length > 0 && (
+                  <ul className="mt-2 space-y-0.5">
+                    {files.map((f, i) => (
+                      <li key={i} className="text-[11px] flex items-center gap-1" style={{ color: '#6b7280' }}>
+                        <FileText className="w-3 h-3" /> {f.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+              <button onClick={() => setModal({ open: false, editing: null })} className="btn-ghost flex-1">Cancelar</button>
+              <button onClick={handleSave} disabled={uploading} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                {uploading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</> : modal.editing ? 'Salvar Alterações' : 'Cadastrar NF'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ─────────────────────────────────────────────
 export default function EmpenhosPage() {
   const { empenhos, addEmpenho, updateEmpenho, deleteEmpenho, updateNFStatus, loadFromDB } = useDemoStore();
@@ -97,10 +394,6 @@ export default function EmpenhosPage() {
   const [form, setForm] = useState<Omit<Empenho, 'id' | 'createdAt'>>(emptyForm);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [nfExpanded, setNfExpanded] = useState<Set<string>>(new Set());
-  const [nfModal, setNfModal] = useState(false);
-  const [nfForm, setNfForm] = useState({ empenhoId: '', nfNumero: '', valorNf: 0, dataEntrega: '', status: 'AGUARDANDO_PAGAMENTO' as NfStatus, dataPagamento: '' });
-  const [nfFile, setNfFile] = useState<File | null>(null);
-  const [nfUploading, setNfUploading] = useState(false);
 
   useEffect(() => { loadFromDB(); }, [loadFromDB]);
 
@@ -151,37 +444,6 @@ export default function EmpenhosPage() {
     setForm(f => ({ ...f, itens: f.itens.map((it, i) => i === idx ? { ...it, [field]: value } : it) }));
   }
   function removeItem(idx: number) { setForm(f => ({ ...f, itens: f.itens.filter((_, i) => i !== idx) })); }
-
-  async function handleSaveNF() {
-    if (!nfForm.empenhoId || !nfForm.nfNumero) {
-      toast.error('Selecione um empenho e informe o número da NF');
-      return;
-    }
-    setNfUploading(true);
-    let arquivoUrl = '';
-    if (nfFile) {
-      const url = await dbStorage.uploadNfFile(nfFile);
-      if (url) arquivoUrl = url;
-      else toast.error('Erro ao fazer upload do arquivo, mas NF será salva sem arquivo');
-    }
-    const empenho = empenhos.find(e => e.id === nfForm.empenhoId);
-    if (!empenho) { setNfUploading(false); return; }
-    const updatedItens = empenho.itens.map(it => ({
-      ...it,
-      nf: it.nf || nfForm.nfNumero,
-      valorNf: it.valorNf || nfForm.valorNf,
-      dataEntregaNf: it.dataEntregaNf || nfForm.dataEntrega,
-      nfStatus: nfForm.status,
-      nfDataPagamento: nfForm.dataPagamento,
-      nfArquivo: arquivoUrl || it.nfArquivo,
-    }));
-    updateEmpenho(nfForm.empenhoId, { itens: updatedItens });
-    setNfUploading(false);
-    setNfModal(false);
-    setNfForm({ empenhoId: '', nfNumero: '', valorNf: 0, dataEntrega: '', status: 'AGUARDANDO_PAGAMENTO', dataPagamento: '' });
-    setNfFile(null);
-    toast.success('Nota Fiscal salva com sucesso!');
-  }
 
   function exportCSV() {
     const hoje = new Date().toLocaleDateString('pt-BR');
@@ -505,224 +767,7 @@ export default function EmpenhosPage() {
 
       {/* ── TAB: NOTAS FISCAIS ── */}
       {tab === 'notas' && (
-        <div className="space-y-4">
-          <div className="surface rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4" style={{ color: '#2563eb' }} />
-                <p className="text-sm font-semibold" style={{ color: '#111827' }}>Notas Fiscais</p>
-                <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.05)', color: '#6b7280' }}>{nfGroups.length} NFs</span>
-              </div>
-              <button onClick={() => setNfModal(true)} className="btn-primary flex items-center gap-1.5 text-[12px] py-1.5 px-3">
-                <Plus className="w-3.5 h-3.5" /> Nova NF
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full table-premium">
-                <thead>
-                  <tr>
-                    <th style={{ width: 40 }}></th>
-                    <th>Nota Fiscal</th>
-                    <th>Empenho</th>
-                    <th>Órgão</th>
-                    <th>Itens</th>
-                    <th>Valor da Nota</th>
-                    <th>Total Custo</th>
-                    <th>Status</th>
-                    <th>Data Pagamento</th>
-                    <th>Arquivo / Documento</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {nfGroups.map(g => {
-                    const isExp = nfExpanded.has(g.key);
-                    return [
-                      <tr key={g.key} className="group">
-                        <td>
-                          <button onClick={() => toggleNfExpand(g.key)} className="p-1.5 rounded-md hover:bg-gray-100 transition-colors">
-                            {isExp ? <ChevronDown className="w-3.5 h-3.5" style={{ color: '#6b7280' }} /> : <ChevronRight className="w-3.5 h-3.5" style={{ color: '#9ca3af' }} />}
-                          </button>
-                        </td>
-                        <td><span className="font-mono text-[12px] font-semibold" style={{ color: '#2563eb' }}>{g.nfNumero}</span></td>
-                        <td><span className="font-mono text-[11px]" style={{ color: '#6b7280' }}>{g.empenhoNumero}</span></td>
-                        <td className="max-w-[160px] truncate" title={g.orgao} style={{ color: '#374151' }}>{g.orgao}</td>
-                        <td>
-                          <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.05)', color: '#6b7280' }}>
-                            {g.itens.length} {g.itens.length === 1 ? 'item' : 'itens'}
-                          </span>
-                        </td>
-                        <td className="tabular-nums font-semibold" style={{ color: '#111827' }}>{fmt(g.totalVenda)}</td>
-                        <td className="tabular-nums" style={{ color: '#6b7280' }}>{fmt(g.totalCusto)}</td>
-                        <td>
-                          <select
-                            value={g.nfStatus}
-                            onChange={ev => updateNFStatus(g.empenhoId, g.nfNumero, { nfStatus: ev.target.value as NfStatus })}
-                            className="text-[11px] font-medium rounded-full px-2 py-0.5 border-0 cursor-pointer"
-                            style={{
-                              background: g.nfStatus === 'PAGAMENTO_EFETUADO' ? 'rgba(22,163,74,0.1)' : g.nfStatus === 'NOTA_CANCELADA' ? 'rgba(220,38,38,0.1)' : 'rgba(217,119,6,0.1)',
-                              color: g.nfStatus === 'PAGAMENTO_EFETUADO' ? '#16a34a' : g.nfStatus === 'NOTA_CANCELADA' ? '#dc2626' : '#d97706',
-                            }}>
-                            <option value="AGUARDANDO_PAGAMENTO">Aguardando Pagamento</option>
-                            <option value="PAGAMENTO_EFETUADO">Pagamento Efetuado</option>
-                            <option value="NOTA_CANCELADA">Nota Cancelada</option>
-                          </select>
-                        </td>
-                        <td>
-                          <input
-                            type="date"
-                            value={g.nfDataPagamento}
-                            onChange={ev => updateNFStatus(g.empenhoId, g.nfNumero, { nfDataPagamento: ev.target.value })}
-                            className="input-premium text-[12px]"
-                            style={{ width: 130 }}
-                          />
-                        </td>
-                        <td>
-                          {g.nfArquivo && g.nfArquivo.startsWith('http') ? (
-                            <a href={g.nfArquivo} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-[12px] font-medium" style={{ color: '#2563eb' }}>
-                              <ExternalLink className="w-3 h-3" /> Ver arquivo
-                            </a>
-                          ) : (
-                            <input
-                              value={g.nfArquivo}
-                              onChange={ev => updateNFStatus(g.empenhoId, g.nfNumero, { nfArquivo: ev.target.value })}
-                              className="input-premium text-[12px]"
-                              style={{ width: 160 }}
-                              placeholder="Nome do arquivo..."
-                            />
-                          )}
-                        </td>
-                      </tr>,
-                      isExp && (
-                        <tr key={`${g.key}-exp`}>
-                          <td colSpan={10} style={{ padding: 0 }}>
-                            <div className="px-10 py-3" style={{ background: '#f9fafb', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-                              <div className="overflow-x-auto">
-                                <table className="w-full" style={{ fontSize: 12 }}>
-                                  <thead>
-                                    <tr>
-                                      {['#', 'Descrição', 'Und', 'Qtd', 'Vlr Venda', 'Total Venda', 'Qtd Entregue', 'Vlr Custo', 'Total Custo', 'Falta Entregar'].map(h => (
-                                        <th key={h} className="text-left pb-2 pr-3 whitespace-nowrap" style={{ color: '#9ca3af', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {g.itens.map((it, idx) => {
-                                      const itv = it.qtd * it.valorVenda;
-                                      const itc = it.qtdEntregue * it.valorCusto;
-                                      const alert = it.valorCusto > it.valorVenda;
-                                      const falta = it.qtd - it.qtdEntregue;
-                                      return (
-                                        <tr key={it.id} style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-                                          <td className="py-1.5 pr-3" style={{ color: '#9ca3af' }}>{idx + 1}</td>
-                                          <td className="py-1.5 pr-3 truncate" style={{ color: '#374151', maxWidth: 220 }} title={it.descricao}>{it.descricao}</td>
-                                          <td className="py-1.5 pr-3" style={{ color: '#6b7280' }}>{it.und}</td>
-                                          <td className="py-1.5 pr-3 tabular-nums">{it.qtd}</td>
-                                          <td className="py-1.5 pr-3 tabular-nums" style={{ color: '#6b7280' }}>{fmtFull(it.valorVenda)}</td>
-                                          <td className="py-1.5 pr-3 tabular-nums font-medium" style={{ color: '#111827' }}>{fmt(itv)}</td>
-                                          <td className="py-1.5 pr-3 tabular-nums" style={{ color: '#6b7280' }}>{it.qtdEntregue}</td>
-                                          <td className="py-1.5 pr-3 tabular-nums" style={{ color: alert ? '#dc2626' : '#6b7280' }}>{fmtFull(it.valorCusto)}</td>
-                                          <td className="py-1.5 pr-3 tabular-nums font-semibold" style={{ color: alert ? '#dc2626' : '#374151' }}>{fmt(itc)}</td>
-                                          <td className="py-1.5">
-                                            <span className="tabular-nums font-semibold" style={{ color: falta > 0 ? '#d97706' : '#16a34a' }}>{falta}</span>
-                                            <span className="block text-[9px]" style={{ color: '#9ca3af' }}>{it.qtd} ped. / {it.qtdEntregue} entregue</span>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ),
-                    ].filter(Boolean);
-                  })}
-                  {nfGroups.length === 0 && (
-                    <tr>
-                      <td colSpan={10} className="py-12 text-center text-[13px]" style={{ color: '#9ca3af' }}>
-                        Nenhuma nota fiscal cadastrada. Adicione NFs nos itens dos empenhos.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* Footer: total aguardando pagamento */}
-            <div className="flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#fafafa' }}>
-              <span className="text-[12px]" style={{ color: '#9ca3af' }}>Soma total das notas aguardando pagamento</span>
-              <span className="text-sm font-semibold tabular-nums" style={{ color: '#d97706' }}>{fmt(totalAguardando)}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Nova NF */}
-      {nfModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-lg rounded-2xl" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-              <h2 className="text-sm font-semibold" style={{ color: '#111827' }}>Nova Nota Fiscal</h2>
-              <button onClick={() => setNfModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" style={{ color: '#6b7280' }} /></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Empenho</label>
-                <select value={nfForm.empenhoId} onChange={e => setNfForm(f => ({ ...f, empenhoId: e.target.value }))} className="input-premium select">
-                  <option value="">Selecione um empenho...</option>
-                  {empenhos.map(e => <option key={e.id} value={e.id}>{e.numero} — {e.fornecedor}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Número da NF</label>
-                  <input value={nfForm.nfNumero} onChange={e => setNfForm(f => ({ ...f, nfNumero: e.target.value }))} className="input-premium" placeholder="NF-000000" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Valor da NF (R$)</label>
-                  <input type="number" step="0.01" value={nfForm.valorNf} onChange={e => setNfForm(f => ({ ...f, valorNf: parseFloat(e.target.value) || 0 }))} className="input-premium" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Data de Entrega</label>
-                  <input type="date" value={nfForm.dataEntrega} onChange={e => setNfForm(f => ({ ...f, dataEntrega: e.target.value }))} className="input-premium" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Status</label>
-                  <select value={nfForm.status} onChange={e => setNfForm(f => ({ ...f, status: e.target.value as NfStatus }))} className="input-premium select">
-                    <option value="AGUARDANDO_PAGAMENTO">Aguardando Pagamento</option>
-                    <option value="PAGAMENTO_EFETUADO">Pagamento Efetuado</option>
-                    <option value="NOTA_CANCELADA">Nota Cancelada</option>
-                  </select>
-                </div>
-                {nfForm.status === 'PAGAMENTO_EFETUADO' && (
-                  <div className="col-span-2">
-                    <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Data do Pagamento</label>
-                    <input type="date" value={nfForm.dataPagamento} onChange={e => setNfForm(f => ({ ...f, dataPagamento: e.target.value }))} className="input-premium" />
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium mb-1" style={{ color: '#6b7280' }}>Arquivo / Documento da NF</label>
-                <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-dashed transition-colors"
-                  style={{ borderColor: nfFile ? '#2563eb' : 'rgba(0,0,0,0.15)', background: nfFile ? 'rgba(37,99,235,0.04)' : 'transparent' }}>
-                  <Upload className="w-4 h-4 flex-shrink-0" style={{ color: nfFile ? '#2563eb' : '#9ca3af' }} />
-                  <span className="text-[12px] truncate" style={{ color: nfFile ? '#2563eb' : '#9ca3af' }}>
-                    {nfFile ? nfFile.name : 'Clique para selecionar PDF, XML, imagem...'}
-                  </span>
-                  <input type="file" className="hidden" accept=".pdf,.xml,.jpg,.jpeg,.png,.webp"
-                    onChange={e => setNfFile(e.target.files?.[0] ?? null)} />
-                </label>
-              </div>
-            </div>
-            <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
-              <button onClick={() => { setNfModal(false); setNfFile(null); }} className="btn-ghost flex-1">Cancelar</button>
-              <button onClick={handleSaveNF} disabled={nfUploading} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                {nfUploading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</> : 'Salvar NF'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <NotasFiscaisTab />
       )}
 
       {/* Modal */}

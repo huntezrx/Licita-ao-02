@@ -45,3 +45,20 @@ alter table public.licitacoes disable row level security;
 -- Storage policy: allow all operations
 create policy "allow all on nf-docs" on storage.objects
   for all using (bucket_id = 'nf-docs') with check (bucket_id = 'nf-docs');
+
+-- Notas Fiscais independentes (rodar se ainda não criou)
+create table if not exists public.notas_fiscais (
+  id text primary key,
+  numero_nf text not null,
+  numero_empenho text default '',
+  fornecedor text default '',
+  orgao text default '',
+  valor numeric default 0,
+  data_entrega text default null,
+  status text default 'AGUARDANDO_PAGAMENTO',
+  data_pagamento text default null,
+  arquivos jsonb default '[]',
+  observacao text default '',
+  created_at text default ''
+);
+alter table public.notas_fiscais disable row level security;
