@@ -96,11 +96,41 @@ const emptyNf = (): Omit<NotaFiscal, 'id' | 'createdAt'> => ({
 });
 
 function NotasFiscaisTab() {
-  const { notasFiscais, addNotaFiscal, updateNotaFiscal, deleteNotaFiscal } = useDemoStore();
+  const { notasFiscais, empenhos, addNotaFiscal, updateNotaFiscal, deleteNotaFiscal } = useDemoStore();
   const [modal, setModal] = useState<{ open: boolean; editing: NotaFiscal | null }>({ open: false, editing: null });
   const [form, setForm] = useState(emptyNf());
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // Migração única: importa NFs dos itens de empenhos para a nova tabela independente
+  useEffect(() => {
+    if (notasFiscais.length > 0) return; // já tem dados, não migra
+    const seen = new Set<string>();
+    empenhos.forEach(e => {
+      e.itens.forEach(it => {
+        if (!it.nf) return;
+        const key = `${e.id}_${it.nf}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        // Agrupa itens com mesma NF no mesmo empenho
+        const itensNf = e.itens.filter(i => i.nf === it.nf);
+        const totalValor = itensNf.reduce((s, i) => s + i.valorNf, 0) || itensNf.reduce((s, i) => s + i.qtd * i.valorVenda, 0);
+        addNotaFiscal({
+          numeroNf: it.nf,
+          numeroEmpenho: e.numero,
+          fornecedor: e.fornecedor,
+          orgao: e.orgao,
+          valor: totalValor,
+          dataEntrega: it.dataEntregaNf || '',
+          status: it.nfStatus || 'AGUARDANDO_PAGAMENTO',
+          dataPagamento: it.nfDataPagamento || '',
+          arquivos: it.nfArquivo ? [it.nfArquivo] : [],
+          observacao: '',
+        });
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empenhos]);
 
   const totalAguardando = notasFiscais
     .filter(n => n.status === 'AGUARDANDO_PAGAMENTO')
