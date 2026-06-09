@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Pencil, Trash2, X, AlertTriangle, Download, ChevronDown, ChevronRight, FileText, Upload, ExternalLink, Loader2 } from 'lucide-react';
 import { useDemoStore, Empenho, EmpenhoItem, EmpenhoStatus, NfStatus, NotaFiscal } from '@/store/demoStore';
 import { dbStorage } from '@/services/db.service';
@@ -101,6 +101,8 @@ function NotasFiscaisTab() {
   const [form, setForm] = useState(emptyNf());
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [sortField, setSortField] = useState<keyof NotaFiscal | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   // Migração única: importa NFs dos itens de empenhos para a nova tabela independente
   useEffect(() => {
@@ -131,6 +133,45 @@ function NotasFiscaisTab() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empenhos]);
+
+  function handleSort(field: keyof NotaFiscal) {
+    if (sortField === field) {
+      if (sortDir === 'asc') setSortDir('desc');
+      else { setSortField(null); setSortDir('asc'); }
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  }
+
+  const sortedNfs = useMemo(() => {
+    if (!sortField) return notasFiscais;
+    return [...notasFiscais].sort((a, b) => {
+      const av = a[sortField];
+      const bv = b[sortField];
+      let cmp = 0;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        cmp = av - bv;
+      } else {
+        cmp = String(av ?? '').localeCompare(String(bv ?? ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [notasFiscais, sortField, sortDir]);
+
+  function SortTh({ field, children, style }: { field: keyof NotaFiscal; children: React.ReactNode; style?: React.CSSProperties }) {
+    const active = sortField === field;
+    return (
+      <th onClick={() => handleSort(field)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', ...style }}>
+        <span className="flex items-center gap-1">
+          {children}
+          <span style={{ fontSize: 10, opacity: active ? 1 : 0.3 }}>
+            {active ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+          </span>
+        </span>
+      </th>
+    );
+  }
 
   const totalAguardando = notasFiscais
     .filter(n => n.status === 'AGUARDANDO_PAGAMENTO')
@@ -193,21 +234,21 @@ function NotasFiscaisTab() {
           <table className="w-full table-premium">
             <thead>
               <tr>
-                <th>Nota Fiscal</th>
-                <th>Nº Empenho</th>
-                <th>Fornecedor</th>
-                <th>Órgão</th>
-                <th>Valor</th>
-                <th>Data Entrega</th>
-                <th>Status</th>
-                <th>Data Pagamento</th>
+                <SortTh field="numeroNf">Nota Fiscal</SortTh>
+                <SortTh field="numeroEmpenho">Nº Empenho</SortTh>
+                <SortTh field="fornecedor">Fornecedor</SortTh>
+                <SortTh field="orgao">Órgão</SortTh>
+                <SortTh field="valor">Valor</SortTh>
+                <SortTh field="dataEntrega">Data Entrega</SortTh>
+                <SortTh field="status">Status</SortTh>
+                <SortTh field="dataPagamento">Data Pagamento</SortTh>
                 <th>Arquivos</th>
-                <th>Observação</th>
+                <SortTh field="observacao">Observação</SortTh>
                 <th style={{ width: 72 }}></th>
               </tr>
             </thead>
             <tbody>
-              {notasFiscais.map(nf => {
+              {sortedNfs.map(nf => {
                 const sc = statusColor(nf.status);
                 return (
                   <tr key={nf.id} className="group">
